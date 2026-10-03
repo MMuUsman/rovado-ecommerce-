@@ -39,7 +39,9 @@ function Gallery({ product }) {
           src={mainImage}
           alt={product?.title || "Product"}
           className="aspect-square w-full object-cover"
-          onError={(e) => { e.target.src = FALLBACK; }}
+          onError={(e) => {
+            e.target.src = FALLBACK;
+          }}
         />
         {(product?.badge || product?.is_new) && (
           <span className="absolute left-4 top-4 rounded-md bg-neutral-800 px-2 py-1 text-[10px] font-normal uppercase text-white">
@@ -64,7 +66,9 @@ function Gallery({ product }) {
               src={img}
               alt={`thumb ${idx + 1}`}
               className="h-full w-full object-cover"
-              onError={(e) => { e.target.src = FALLBACK; }}
+              onError={(e) => {
+                e.target.src = FALLBACK;
+              }}
             />
           </button>
         ))}
@@ -171,7 +175,10 @@ function BuyBox({ product }) {
         <p className="mb-2 text-xs text-black">Guaranteed Safe Checkout</p>
         <div className="flex items-center gap-2 text-[10px] text-neutral-500">
           {["Visa", "MC", "PayPal", "Amex", "Disc"].map((p) => (
-            <span key={p} className="rounded bg-neutral-200 px-2 py-1 font-medium">
+            <span
+              key={p}
+              className="rounded bg-neutral-200 px-2 py-1 font-medium"
+            >
               {p}
             </span>
           ))}
@@ -255,7 +262,7 @@ function FrequentlyBoughtTogether({ product }) {
           rating: product.rating,
           reviews: product.reviews,
         },
-        1
+        1,
       );
     }
 
@@ -270,7 +277,7 @@ function FrequentlyBoughtTogether({ product }) {
             shipping: "Free shipping",
             stock: "in",
           },
-          1
+          1,
         );
       }
     });
@@ -283,7 +290,8 @@ function FrequentlyBoughtTogether({ product }) {
     setSelected((s) => ({ ...s, [key]: !s[key] }));
   };
 
-  const nothingSelected = !selected.this && !selected.headphone && !selected.watch;
+  const nothingSelected =
+    !selected.this && !selected.headphone && !selected.watch;
 
   return (
     <section className="rounded-xl bg-white p-4 sm:p-6">
@@ -298,21 +306,30 @@ function FrequentlyBoughtTogether({ product }) {
               src={product.image}
               alt={product.title}
               className="size-32 rounded-xl object-cover sm:size-40"
-              onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1518770660439-4636190af475?w=200&q=80"; }}
+              onError={(e) => {
+                e.target.src =
+                  "https://images.unsplash.com/photo-1518770660439-4636190af475?w=200&q=80";
+              }}
             />
             <span className="text-2xl text-neutral-300">+</span>
             <img
               src={extraItems[0].image}
               alt={extraItems[0].title}
               className="size-32 rounded-xl object-cover opacity-90 sm:size-40"
-              onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1518770660439-4636190af475?w=200&q=80"; }}
+              onError={(e) => {
+                e.target.src =
+                  "https://images.unsplash.com/photo-1518770660439-4636190af475?w=200&q=80";
+              }}
             />
             <span className="text-2xl text-neutral-300">+</span>
             <img
               src={extraItems[1].image}
               alt={extraItems[1].title}
               className="size-32 rounded-xl object-cover opacity-40 sm:size-40"
-              onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1518770660439-4636190af475?w=200&q=80"; }}
+              onError={(e) => {
+                e.target.src =
+                  "https://images.unsplash.com/photo-1518770660439-4636190af475?w=200&q=80";
+              }}
             />
           </div>
 
@@ -398,9 +415,21 @@ export default function ProductDetail() {
   const [loading, setLoading] = useState(true);
 
   const colors = [
-    { name: "Midnight Blue", price: "$569.00", img: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=35&q=80" },
-    { name: "Deep Purple", price: "$569.00", img: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=35&q=80" },
-    { name: "Space Black", price: "$569.00", img: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=35&q=80" },
+    {
+      name: "Midnight Blue",
+      price: "$569.00",
+      img: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=35&q=80",
+    },
+    {
+      name: "Deep Purple",
+      price: "$569.00",
+      img: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=35&q=80",
+    },
+    {
+      name: "Space Black",
+      price: "$569.00",
+      img: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=35&q=80",
+    },
   ];
 
   const memoryOptions = ["64GB", "128GB", "256GB", "512GB"];
@@ -427,13 +456,15 @@ export default function ProductDetail() {
           // ✅ Recently viewed me save karo
           try {
             const stored = JSON.parse(
-              localStorage.getItem("rovado_recently_viewed") || "[]"
+              localStorage.getItem("rovado_recently_viewed") || "[]",
             );
-            const filtered = stored.filter((rid) => String(rid) !== String(prod.id));
+            const filtered = stored.filter(
+              (rid) => String(rid) !== String(prod.id),
+            );
             const updated = [String(prod.id), ...filtered].slice(0, 10);
             localStorage.setItem(
               "rovado_recently_viewed",
-              JSON.stringify(updated)
+              JSON.stringify(updated),
             );
           } catch (e) {
             console.warn("Recently viewed save error:", e);
@@ -586,7 +617,11 @@ export default function ProductDetail() {
                           : "outline-stone-300 hover:outline-green-300"
                       }`}
                     >
-                      <img src={c.img} alt={c.name} className="size-9 rounded" />
+                      <img
+                        src={c.img}
+                        alt={c.name}
+                        className="size-9 rounded"
+                      />
                       <div>
                         <p className="text-xs">{c.name}</p>
                         <p className="text-xs font-bold">{c.price}</p>
@@ -668,7 +703,7 @@ export default function ProductDetail() {
                   >
                     <Icon size={14} />
                   </span>
-                )
+                ),
               )}
             </div>
           </div>
@@ -706,119 +741,135 @@ export default function ProductDetail() {
         </div>
 
         {tab === "description" && (
-  <div className="space-y-6 text-sm leading-6">
-    {/* ✅ Main description from Supabase */}
-    {product.description ? (
-      <div className="whitespace-pre-line text-neutral-700">
-        {product.description}
-      </div>
-    ) : (
-      <p className="text-neutral-500 italic">
-        No description available for this product.
-      </p>
-    )}
+          <div className="space-y-6 text-sm leading-6">
+            {/* ✅ Main description from Supabase */}
+            {product.description ? (
+              <div className="whitespace-pre-line text-neutral-700">
+                {product.description}
+              </div>
+            ) : (
+              <p className="text-neutral-500 italic">
+                No description available for this product.
+              </p>
+            )}
 
-    {/* ✅ Product main image (large) */}
-    {product.image && (
-      <img
-        src={product.image}
-        alt={product.title}
-        className="w-full rounded-xl"
-        onError={(e) => {
-          e.target.src =
-            "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=80";
-        }}
-      />
-    )}
+            {/* ✅ Product main image (large) */}
+            {product.image && (
+              <img
+                src={product.image}
+                alt={product.title}
+                className="w-full rounded-xl"
+                onError={(e) => {
+                  e.target.src =
+                    "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&q=80";
+                }}
+              />
+            )}
 
-    {/* ✅ Product details from Supabase */}
-    <div className="rounded-xl bg-green-50 p-5">
-      <h3 className="mb-3 text-lg font-bold">Product Details</h3>
-      <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
-        <div>
-          <span className="font-bold uppercase text-stone-500">Brand: </span>
-          <span className="text-black">{product.brand || "Generic"}</span>
-        </div>
-        <div>
-          <span className="font-bold uppercase text-stone-500">Category: </span>
-          <span className="text-black capitalize">
-            {(product.category || "").replace("-", " ")}
-          </span>
-        </div>
-        <div>
-          <span className="font-bold uppercase text-stone-500">SKU: </span>
-          <span className="text-black">
-            {product.sku || `SKU-${product.id}`}
-          </span>
-        </div>
-        <div>
-          <span className="font-bold uppercase text-stone-500">Stock: </span>
-          <span
-            className={`font-bold ${
-              product.stock === "in"
-                ? "text-green-600"
-                : product.stock === "out"
-                ? "text-red-600"
-                : "text-yellow-600"
-            }`}
-          >
-            {product.stock === "in"
-              ? "✓ In Stock"
-              : product.stock === "out"
-              ? "✗ Out of Stock"
-              : "Contact Us"}
-          </span>
-        </div>
-        <div>
-          <span className="font-bold uppercase text-stone-500">Price: </span>
-          <span className="font-bold text-black">
-            ${Number(product.price).toFixed(2)}
-          </span>
-        </div>
-        {product.old_price && (
-          <div>
-            <span className="font-bold uppercase text-stone-500">Old Price: </span>
-            <span className="text-stone-500 line-through">
-              ${Number(product.old_price).toFixed(2)}
-            </span>
+            {/* ✅ Product details from Supabase */}
+            <div className="rounded-xl bg-green-50 p-5">
+              <h3 className="mb-3 text-lg font-bold">Product Details</h3>
+              <div className="grid grid-cols-1 gap-3 text-sm sm:grid-cols-2">
+                <div>
+                  <span className="font-bold uppercase text-stone-500">
+                    Brand:{" "}
+                  </span>
+                  <span className="text-black">
+                    {product.brand || "Generic"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-bold uppercase text-stone-500">
+                    Category:{" "}
+                  </span>
+                  <span className="text-black capitalize">
+                    {(product.category || "").replace("-", " ")}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-bold uppercase text-stone-500">
+                    SKU:{" "}
+                  </span>
+                  <span className="text-black">
+                    {product.sku || `SKU-${product.id}`}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-bold uppercase text-stone-500">
+                    Stock:{" "}
+                  </span>
+                  <span
+                    className={`font-bold ${
+                      product.stock === "in"
+                        ? "text-green-600"
+                        : product.stock === "out"
+                          ? "text-red-600"
+                          : "text-yellow-600"
+                    }`}
+                  >
+                    {product.stock === "in"
+                      ? "✓ In Stock"
+                      : product.stock === "out"
+                        ? "✗ Out of Stock"
+                        : "Contact Us"}
+                  </span>
+                </div>
+                <div>
+                  <span className="font-bold uppercase text-stone-500">
+                    Price:{" "}
+                  </span>
+                  <span className="font-bold text-black">
+                    ${Number(product.price).toFixed(2)}
+                  </span>
+                </div>
+                {product.old_price && (
+                  <div>
+                    <span className="font-bold uppercase text-stone-500">
+                      Old Price:{" "}
+                    </span>
+                    <span className="text-stone-500 line-through">
+                      ${Number(product.old_price).toFixed(2)}
+                    </span>
+                  </div>
+                )}
+                {product.shipping && (
+                  <div>
+                    <span className="font-bold uppercase text-stone-500">
+                      Shipping:{" "}
+                    </span>
+                    <span className="text-green-600">{product.shipping}</span>
+                  </div>
+                )}
+                {product.rating && (
+                  <div>
+                    <span className="font-bold uppercase text-stone-500">
+                      Rating:{" "}
+                    </span>
+                    <span className="text-amber-600">
+                      {product.rating} ★ ({product.reviews || 0} reviews)
+                    </span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* ✅ Guarantee section */}
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div className="rounded-xl bg-neutral-100 p-5 text-center">
+                <p className="text-3xl">🚚</p>
+                <p className="mt-2 font-bold">Free Shipping</p>
+                <p className="text-xs text-stone-500">On orders over $199</p>
+              </div>
+              <div className="rounded-xl bg-neutral-100 p-5 text-center">
+                <p className="text-3xl">🛡️</p>
+                <p className="mt-2 font-bold">Secure Payment</p>
+                <p className="text-xs text-stone-500">100% protected</p>
+              </div>
+            </div>
           </div>
         )}
-        {product.shipping && (
-          <div>
-            <span className="font-bold uppercase text-stone-500">Shipping: </span>
-            <span className="text-green-600">{product.shipping}</span>
-          </div>
-        )}
-        {product.rating && (
-          <div>
-            <span className="font-bold uppercase text-stone-500">Rating: </span>
-            <span className="text-amber-600">
-              {product.rating} ★ ({product.reviews || 0} reviews)
-            </span>
-          </div>
-        )}
-      </div>
-    </div>
 
-    {/* ✅ Guarantee section */}
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-      <div className="rounded-xl bg-neutral-100 p-5 text-center">
-        <p className="text-3xl">🚚</p>
-        <p className="mt-2 font-bold">Free Shipping</p>
-        <p className="text-xs text-stone-500">On orders over $199</p>
-      </div>
-      <div className="rounded-xl bg-neutral-100 p-5 text-center">
-        <p className="text-3xl">🛡️</p>
-        <p className="mt-2 font-bold">Secure Payment</p>
-        <p className="text-xs text-stone-500">100% protected</p>
-      </div>
-    </div>
-  </div>
-)}
-
-        {tab === "reviews" && (
-  <ReviewsSection productId={product.id} />
-)}
+        {tab === "reviews" && <ReviewsSection productId={product.id} />}
 
         {tab === "info" && (
           <div className="space-y-2 text-sm text-stone-500">
@@ -848,7 +899,9 @@ export default function ProductDetail() {
       {recentlyViewedData.length > 0 && (
         <section className="rounded-xl bg-white p-4 sm:p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-bold uppercase">Your recently viewed</h2>
+            <h2 className="text-lg font-bold uppercase">
+              Your recently viewed
+            </h2>
             <Link
               to="/category"
               className="text-xs text-stone-500 hover:text-green-600"
@@ -856,34 +909,37 @@ export default function ProductDetail() {
               View All →
             </Link>
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="flex snap-x gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             {recentlyViewedData.map((p) => (
               <Link
                 key={p.id}
                 to={`/product/${p.id}`}
-                className="flex gap-3 rounded-lg p-2 transition hover:bg-neutral-50"
+                className="flex w-64 sm:w-72 shrink-0 snap-start gap-2 sm:gap-3 rounded-lg border border-stone-200 p-2 transition hover:border-green-600 hover:bg-neutral-50"
               >
                 <img
                   src={p.image}
                   alt={p.title}
-                  className="size-24 shrink-0 rounded object-cover"
-                  onError={(e) => { e.target.src = "https://images.unsplash.com/photo-1518770660439-4636190af475?w=200&q=80"; }}
+                  className="size-20 sm:size-24 shrink-0 rounded object-cover"
+                  onError={(e) => {
+                    e.target.src =
+                      "https://images.unsplash.com/photo-1518770660439-4636190af475?w=200&q=80";
+                  }}
                 />
-                <div className="min-w-0">
+                <div className="min-w-0 flex-1">
                   {p.rating != null && (
                     <StarRating count={p.rating} reviews={p.reviews} />
                   )}
-                  <p className="mt-1 line-clamp-2 text-xs font-bold">{p.title}</p>
-                  <div className="mt-1 flex items-baseline gap-2">
+                  <p className="mt-1 line-clamp-2 text-[10px] sm:text-xs font-bold">
+                    {p.title}
+                  </p>
+                  <div className="mt-1 flex items-baseline gap-1 sm:gap-2">
                     <span
-                      className={`text-base font-bold ${
-                        p.oldPrice ? "text-red-600" : "text-black"
-                      }`}
+                      className={`text-xs sm:text-base font-bold ${p.oldPrice ? "text-red-600" : "text-black"}`}
                     >
                       {p.price}
                     </span>
                     {p.oldPrice && (
-                      <span className="text-sm font-bold text-stone-500 line-through">
+                      <span className="text-[10px] sm:text-sm font-bold text-stone-500 line-through">
                         {p.oldPrice}
                       </span>
                     )}

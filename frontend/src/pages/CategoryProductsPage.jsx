@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import {
   ChevronLeft,
   ChevronRight,
@@ -15,7 +15,7 @@ const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80";
 
 /* =========================================================
-   Data — static filter options
+   Static Filter Options
 ========================================================= */
 const BRAND_FILTERS = [
   { name: "Apple", count: 14 },
@@ -27,6 +27,8 @@ const BRAND_FILTERS = [
   { name: "Dell", count: 2 },
   { name: "Google", count: 1 },
   { name: "OnePlus", count: 1 },
+  { name: "Lenovo", count: 2 },
+  { name: "Acer", count: 1 },
 ];
 
 const RATING_FILTERS = [
@@ -63,7 +65,7 @@ const MEMORY_OPTIONS = [
 const CONDITION_OPTIONS = ["New (21)", "Like New (2)", "Open Box (38)"];
 
 /* =========================================================
-   FilterGroup — collapsible
+   FilterGroup
 ========================================================= */
 function FilterGroup({ title, children, defaultOpen = true }) {
   const [open, setOpen] = useState(defaultOpen);
@@ -85,7 +87,7 @@ function FilterGroup({ title, children, defaultOpen = true }) {
 }
 
 /* =========================================================
-   CategorySidebar — Top section (categories list)
+   Category Sidebar
 ========================================================= */
 function CategorySidebar({ categories, activeCategory, onSelect, title }) {
   return (
@@ -119,30 +121,36 @@ function CategorySidebar({ categories, activeCategory, onSelect, title }) {
             All
           </button>
         </li>
-        {categories.map((c) => (
-          <li key={c}>
-            <button
-              onClick={() => onSelect(c)}
-              className={`w-full rounded px-3 py-1.5 text-left transition ${
-                activeCategory === c
-                  ? "bg-green-600 font-bold text-white"
-                  : "hover:bg-white"
-              }`}
-            >
-              {c}
-            </button>
-          </li>
-        ))}
+        {categories.map((c) => {
+          // ✅ Support both string and object
+          const name = typeof c === "string" ? c : c.name;
+          const keyword = typeof c === "string" ? c : c.keyword || c.name;
+          const active = activeCategory === keyword;
+
+          return (
+            <li key={name}>
+              <button
+                onClick={() => onSelect(keyword)}
+                className={`w-full rounded px-3 py-1.5 text-left transition ${
+                  active
+                    ? "bg-green-600 font-bold text-white"
+                    : "hover:bg-white"
+                }`}
+              >
+                {name}
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );
 }
 
 /* =========================================================
-   FiltersSidebar — Full filters
+   Filters Sidebar
 ========================================================= */
 function FiltersSidebar({
-  // Filters state
   selectedBrands,
   toggleBrand,
   selectedRatings,
@@ -178,7 +186,6 @@ function FiltersSidebar({
         </button>
       </div>
 
-      {/* Active filter chips */}
       {hasFilters && (
         <div className="mb-4 flex flex-wrap gap-2">
           {selectedBrands.map((b) => (
@@ -241,7 +248,6 @@ function FiltersSidebar({
         </div>
       )}
 
-      {/* By Brands */}
       <FilterGroup title="By Brands">
         <ul className="space-y-3">
           {BRAND_FILTERS.map((b) => (
@@ -259,7 +265,6 @@ function FiltersSidebar({
         </ul>
       </FilterGroup>
 
-      {/* By Price */}
       <FilterGroup title="By Price">
         <div className="mb-4 h-0.5 rounded bg-zinc-200">
           <div className="h-0.5 w-full rounded bg-green-600" />
@@ -295,7 +300,6 @@ function FiltersSidebar({
         </div>
       </FilterGroup>
 
-      {/* By Rating */}
       <FilterGroup title="By Rating">
         <ul className="space-y-2">
           {RATING_FILTERS.map((r) => (
@@ -313,7 +317,6 @@ function FiltersSidebar({
         </ul>
       </FilterGroup>
 
-      {/* By Screen Size */}
       <FilterGroup title="By Screen Size">
         <div className="flex flex-wrap gap-2">
           {SCREEN_SIZES.map((s) => {
@@ -335,7 +338,6 @@ function FiltersSidebar({
         </div>
       </FilterGroup>
 
-      {/* By Color */}
       <FilterGroup title="By Color">
         <div className="flex flex-wrap gap-2">
           {COLORS.map((c) => {
@@ -354,7 +356,6 @@ function FiltersSidebar({
         </div>
       </FilterGroup>
 
-      {/* By Memory */}
       <FilterGroup title="By Memory">
         <div className="grid grid-cols-2 gap-2 text-sm">
           {MEMORY_OPTIONS.map((m) => (
@@ -371,7 +372,6 @@ function FiltersSidebar({
         </div>
       </FilterGroup>
 
-      {/* By Conditions */}
       <FilterGroup title="By Conditions">
         <div className="space-y-2 text-sm">
           {CONDITION_OPTIONS.map((c) => (
@@ -494,9 +494,16 @@ export default function CategoryProductsPage({
   sidebarCategories,
   sidebarTitle,
 }) {
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // ✅ URL se brand + subcategory read karo
+  const urlBrand = searchParams.get("brand") || "";
+  const urlSub = searchParams.get("sub") || "";
+
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeCategory, setActiveCategory] = useState("all");
+  const [activeCategory, setActiveCategory] = useState(urlSub || "all");
+  const [brandFilter, setBrandFilter] = useState(urlBrand);
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(24);
   const [sortBy, setSortBy] = useState("default");
@@ -513,6 +520,13 @@ export default function CategoryProductsPage({
   const [selectedColors, setSelectedColors] = useState([]);
   const [selectedMemory, setSelectedMemory] = useState([]);
   const [selectedConditions, setSelectedConditions] = useState([]);
+
+  /* ---------- Sync URL → state ---------- */
+  useEffect(() => {
+    setBrandFilter(urlBrand);
+    setActiveCategory(urlSub || "all");
+    setCurrentPage(1);
+  }, [urlBrand, urlSub]);
 
   /* ---------- Fetch products ---------- */
   useEffect(() => {
@@ -615,8 +629,10 @@ export default function CategoryProductsPage({
     setSelectedMemory([]);
     setSelectedConditions([]);
     setActiveCategory("all");
+    setBrandFilter("");
     setCurrentPage(1);
     setSortBy("default");
+    setSearchParams({});
   };
 
   const activeFiltersCount =
@@ -626,22 +642,33 @@ export default function CategoryProductsPage({
     selectedColors.length +
     selectedMemory.length +
     selectedConditions.length +
-    (appliedMin > 0 || appliedMax < 10000 ? 1 : 0);
+    (appliedMin > 0 || appliedMax < 10000 ? 1 : 0) +
+    (brandFilter ? 1 : 0);
 
   /* ---------- Filter + sort ---------- */
   const filteredProducts = useMemo(() => {
     let list = [...allProducts];
 
-    // 1. Category filter (title/brand match)
+    // 1. Brand filter (URL ya checkbox)
+    if (brandFilter) {
+      const bf = brandFilter.toLowerCase();
+      list = list.filter((p) => {
+        const brand = (p.brand || "").toLowerCase();
+        const title = (p.title || "").toLowerCase();
+        return brand.includes(bf) || title.includes(bf);
+      });
+    }
+
+    // 2. Subcategory filter
     if (activeCategory !== "all") {
       const filter = activeCategory.toLowerCase();
       list = list.filter((p) => {
-        const text = `${p.title || ""} ${p.brand || ""}`.toLowerCase();
+        const text = `${p.title || ""} ${p.brand || ""} ${p.category || ""}`.toLowerCase();
         return text.includes(filter);
       });
     }
 
-    // 2. Brand filter
+    // 3. Brand checkboxes
     if (selectedBrands.length > 0) {
       list = list.filter((p) => {
         const brand = (p.brand || "").toLowerCase();
@@ -652,7 +679,7 @@ export default function CategoryProductsPage({
       });
     }
 
-    // 3. Rating filter
+    // 4. Rating filter
     if (selectedRatings.length > 0) {
       list = list.filter((p) => {
         const rating = Number(p.rating) || 0;
@@ -660,12 +687,12 @@ export default function CategoryProductsPage({
       });
     }
 
-    // 4. Price filter
+    // 5. Price filter
     list = list.filter(
       (p) => (p.priceRaw ?? 0) >= appliedMin && (p.priceRaw ?? 0) <= appliedMax
     );
 
-    // 5. Sort
+    // 6. Sort
     switch (sortBy) {
       case "price-low":
         list.sort((a, b) => (a.priceRaw ?? 0) - (b.priceRaw ?? 0));
@@ -686,6 +713,7 @@ export default function CategoryProductsPage({
     return list;
   }, [
     allProducts,
+    brandFilter,
     activeCategory,
     selectedBrands,
     selectedRatings,
@@ -711,10 +739,27 @@ export default function CategoryProductsPage({
     filteredProducts.length
   );
 
+  /* ---------- Category change ---------- */
   const handleCategoryChange = (cat) => {
     setActiveCategory(cat);
     setCurrentPage(1);
+
+    // URL update karo
+    const newParams = new URLSearchParams(searchParams);
+    if (cat === "all") {
+      newParams.delete("sub");
+    } else {
+      newParams.set("sub", cat);
+    }
+    setSearchParams(newParams);
   };
+
+  /* ---------- Page title with filter ---------- */
+  const displayTitle = brandFilter
+    ? `${brandFilter} ${pageTitle}`
+    : activeCategory !== "all"
+    ? `${activeCategory} — ${pageTitle}`
+    : pageTitle;
 
   return (
     <PageShell>
@@ -727,7 +772,7 @@ export default function CategoryProductsPage({
         ]}
       />
 
-      {/* ══════ HERO ══════ */}
+      {/* ══════ HERO + POPULAR CATEGORIES ══════ */}
       <section className="rounded-xl bg-white p-4 sm:p-6">
         <h1 className="mb-4 text-lg font-bold uppercase">{pageTitle}</h1>
 
@@ -775,29 +820,42 @@ export default function CategoryProductsPage({
           </Link>
         </div>
 
-        {/* Popular categories */}
+        {/* ✅ Popular Categories — specific links */}
         <h2 className="mb-4 mt-8 text-lg font-bold uppercase">
           Popular Categories
         </h2>
-        <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
-          {popularCategories.map((c) => (
-            <Link
-              key={c.name}
-              to="/category"
-              className="flex flex-col items-center gap-2 text-center transition hover:opacity-80"
-            >
-              <div className="size-16 overflow-hidden rounded-full bg-neutral-100 sm:size-20">
-                <img
-                  src={c.image || FALLBACK_IMG}
-                  alt={c.name}
-                  className="h-full w-full object-cover"
-                  onError={(e) => { e.target.src = FALLBACK_IMG; }}
-                />
-              </div>
-              <p className="text-sm font-bold">{c.name}</p>
-              <p className="text-xs text-stone-500">{c.items} Items</p>
-            </Link>
-          ))}
+        <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 lg:grid-cols-5">
+          {popularCategories.map((c) => {
+            // ✅ Build proper URL
+            const linkTo = c.brand
+              ? `/category?brand=${encodeURIComponent(c.brand)}`
+              : c.sub
+              ? `/category?sub=${encodeURIComponent(c.sub)}`
+              : "/category";
+
+            return (
+              <Link
+                key={c.name}
+                to={linkTo}
+                className="group flex flex-col items-center gap-2 text-center transition hover:opacity-80"
+              >
+                <div className="size-14 sm:size-16 lg:size-20 overflow-hidden rounded-full bg-neutral-100">
+                  <img
+                    src={c.image || FALLBACK_IMG}
+                    alt={c.name}
+                    className="h-full w-full object-cover transition group-hover:scale-105"
+                    onError={(e) => { e.target.src = FALLBACK_IMG; }}
+                  />
+                </div>
+                <p className="text-xs sm:text-sm font-bold line-clamp-1">
+                  {c.name}
+                </p>
+                <p className="text-[10px] sm:text-xs text-stone-500">
+                  {c.items} Items
+                </p>
+              </Link>
+            );
+          })}
         </div>
       </section>
 
@@ -820,7 +878,6 @@ export default function CategoryProductsPage({
             </button>
 
             <div className={`${filtersOpen ? "block" : "hidden"} space-y-4 lg:block`}>
-              {/* Categories list */}
               <CategorySidebar
                 title={sidebarTitle}
                 categories={sidebarCategories}
@@ -828,7 +885,6 @@ export default function CategoryProductsPage({
                 onSelect={handleCategoryChange}
               />
 
-              {/* Full filters */}
               <FiltersSidebar
                 selectedBrands={selectedBrands}
                 toggleBrand={toggleBrand}
@@ -851,7 +907,6 @@ export default function CategoryProductsPage({
                 activeFiltersCount={activeFiltersCount}
               />
 
-              {/* Promo banner */}
               <SidePromoBanner />
             </div>
           </div>
@@ -859,9 +914,7 @@ export default function CategoryProductsPage({
           {/* Products */}
           <div>
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 pb-4">
-              <h2 className="text-lg font-bold uppercase">
-                Best seller in this category
-              </h2>
+              <h2 className="text-lg font-bold uppercase">{displayTitle}</h2>
               <p className="text-sm text-stone-500">
                 <span className="font-bold text-black">
                   {showingFrom} - {showingTo}
@@ -869,6 +922,35 @@ export default function CategoryProductsPage({
                 of {filteredProducts.length} results
               </p>
             </div>
+
+            {/* Clear filter */}
+            {(brandFilter || activeCategory !== "all") && (
+              <div className="mb-4 flex flex-wrap gap-2">
+                {brandFilter && (
+                  <span className="flex items-center gap-2 rounded-md bg-green-50 px-3 py-1.5 text-xs text-green-700">
+                    Brand: {brandFilter}
+                    <button
+                      onClick={() => {
+                        setBrandFilter("");
+                        const newParams = new URLSearchParams(searchParams);
+                        newParams.delete("brand");
+                        setSearchParams(newParams);
+                      }}
+                    >
+                      <X size={12} />
+                    </button>
+                  </span>
+                )}
+                {activeCategory !== "all" && (
+                  <span className="flex items-center gap-2 rounded-md bg-green-50 px-3 py-1.5 text-xs text-green-700">
+                    {activeCategory}
+                    <button onClick={() => handleCategoryChange("all")}>
+                      <X size={12} />
+                    </button>
+                  </span>
+                )}
+              </div>
+            )}
 
             {/* Sort row */}
             <div className="mb-6 flex flex-wrap items-center justify-between gap-3 text-sm text-stone-500">

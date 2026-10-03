@@ -222,7 +222,7 @@ export function Header() {
           </Link>
 
           <nav
-            ref={dropdownRef}
+            
             className="hidden items-center gap-6 text-sm font-bold uppercase lg:flex"
           >
             {navItems.map((item) => (
