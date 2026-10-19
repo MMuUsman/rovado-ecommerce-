@@ -1,5 +1,51 @@
 [
   {
+    "order_id": 18,
+    "created_at": "2026-10-19T18:39:26.677Z",
+    "user_id": null,
+    "customer_email": "alex.taylor@rovadotest.com",
+    "customer_name": "Alex Taylor",
+    "totals": {
+      "subtotal": 3898,
+      "shipping": 38.980000000000004,
+      "tax": 77.96000000000001,
+      "total": 4014.94
+    },
+    "items": [
+      {
+        "id": 1,
+        "title": "Apple MacBook Pro 16 M3 Max",
+        "price": 3499,
+        "qty": 1,
+        "image": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200"
+      },
+      {
+        "id": 4,
+        "title": "Sony WH-1000XM5 Wireless Headphones",
+        "price": 399,
+        "qty": 1,
+        "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200"
+      }
+    ],
+    "transaction": {
+      "transaction_id": "ch_test_9a44e0cff468b2fa02e3f3a2",
+      "payment_intent_id": "pi_test_d01f1732aa882b9471a55d9b",
+      "gateway": "stripe_sandbox",
+      "payment_method": "stripe",
+      "card_brand": "Visa",
+      "card_last4": "4242",
+      "test_card": "4242 4242 4242 4242",
+      "amount": "4014.94",
+      "currency": "USD",
+      "status": "succeeded",
+      "paid_at": "2026-10-19T18:39:26.267Z",
+      "receipt_url": "https://pay.stripe.com/receipts/test/pi_test_d01f1732aa882b9471a55d9b",
+      "mock_mode": true
+    },
+    "supabase_persisted": true,
+    "supabase_error": null
+  },
+  {
     "order_id": 12,
     "created_at": "2026-10-19T18:16:19.277Z",
     "user_id": null,
