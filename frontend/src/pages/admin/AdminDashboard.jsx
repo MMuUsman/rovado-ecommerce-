@@ -38,17 +38,31 @@ export default function AdminDashboard() {
         supabase.from("profiles").select("*", { count: "exact", head: true }),
       ]);
 
-      const orders = orderRes.data ?? [];
-      const revenue = orders.reduce((s, o) => s + Number(o.total || 0), 0);
+      let orders = orderRes.data ?? [];
+      if (orderRes.error) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const res = await fetch("http://localhost:4000/api/admin/orders", {
+            headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+          });
+          if (res.ok) {
+            orders = await res.json();
+          }
+        } catch (e) {
+          console.warn("[dashboard] backend fallback error:", e);
+        }
+      }
+
+      const revenue = (orders || []).reduce((s, o) => s + Number(o.total || 0), 0);
 
       setStats({
         products: prodRes.count ?? 0,
-        orders: orders.length,
+        orders: (orders || []).length,
         users: userRes.count ?? 0,
         revenue,
       });
 
-      setRecentOrders(orders.slice(0, 8));
+      setRecentOrders((orders || []).slice(0, 8));
       setLoading(false);
     })();
   }, []);
