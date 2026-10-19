@@ -340,8 +340,17 @@ export function Header() {
             </Link>
           </div>
 
-          <Link to="/cart">
-            <ShoppingCart size={20} />
+          <Link
+            to="/cart"
+            aria-label="Shopping Cart"
+            className="relative grid size-10 place-items-center rounded-full bg-violet-100 transition hover:bg-violet-200"
+          >
+            <ShoppingCart size={18} />
+            {count > 0 && (
+              <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-green-600 text-[10px] font-bold text-white">
+                {count}
+              </span>
+            )}
           </Link>
         </div>
 

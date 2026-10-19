@@ -608,8 +608,16 @@ if (brandFilter) {
 }
 
 // ✅ 2. CATEGORY FILTER
-if (categoryFilter) {
-  list = list.filter((p) => p.category === categoryFilter);
+if (categoryFilter && categoryFilter.toLowerCase() !== "all") {
+  const normCat = categoryFilter.toLowerCase().trim();
+  list = list.filter((p) => {
+    const pCat = (p.category || "").toLowerCase();
+    if (pCat === normCat) return true;
+    if (normCat === "cellphones" && (pCat.includes("cellphone") || pCat.includes("tablet"))) return true;
+    if (normCat === "laptops" && (pCat.includes("laptop") || pCat.includes("computer"))) return true;
+    if (normCat === "best-sellers" && pCat.includes("best-seller")) return true;
+    return pCat.includes(normCat);
+  });
 }
 
     // ✅ 2. SEARCH FILTER

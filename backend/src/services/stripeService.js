@@ -2,19 +2,9 @@ import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { createClient } from "@supabase/supabase-js";
-import dotenv from "dotenv";
+import { supabase, getUserClient } from "../config/supabase.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-dotenv.config({ path: path.resolve(__dirname, "../../.env") });
-
-const supabaseUrl = process.env.SUPABASE_URL || "https://mubgaawxyyeeksznyztp.supabase.co";
-const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || "";
-
-// Default supabase client
-const defaultSupabase = createClient(supabaseUrl, supabaseKey);
-
-// Storage path for transaction audit trail
 const DATA_DIR = path.resolve(__dirname, "../../data");
 const TRANSACTIONS_FILE = path.join(DATA_DIR, "transactions.json");
 
@@ -305,66 +295,30 @@ export async function saveOrderAndTransactionToSupabase({
   };
 
   // Use user-scoped client if userToken is present, otherwise default
-  const supabase = userToken
-    ? createClient(supabaseUrl, supabaseKey, {
-        global: { headers: { Authorization: `Bearer ${userToken}` } },
-      })
-    : defaultSupabase;
-
-  const userId = user?.id || billing.user_id || "00000000-0000-0000-0000-000000000000";
+  const dbClient = userToken ? getUserClient(userToken) : supabase;
+  const userId = user?.id || (billing.user_id && billing.user_id !== "00000000-0000-0000-0000-000000000000" ? billing.user_id : null);
 
   let savedOrder = null;
   let savedItems = [];
   let supabaseError = null;
 
   try {
-    // 1. Insert order into Supabase 'orders' table
-    const orderPayload = {
-      user_id: userId,
-      subtotal: Number(subtotal),
-      shipping: Number(shipping),
-      tax: Number(tax),
-      total: Number(total),
-      status: "paid", // Verified Stripe payment
-      payment_method: "stripe",
-      billing: enrichedBilling,
-      notes: `Stripe Sandbox Payment Verified [ID: ${transactionRecord.payment_intent_id} | Card: ${transactionRecord.card_brand} *${transactionRecord.card_last4}]`,
-    };
+    // 1. Call secure transactional RPC to validate prices and persist atomically
+    const { data: rpcData, error: rpcErr } = await dbClient.rpc("create_order_secure", {
+      p_user_id: userId,
+      p_items: items,
+      p_billing: enrichedBilling,
+      p_payment_method: "stripe",
+      p_notes: `Stripe Sandbox Payment Verified [ID: ${transactionRecord.payment_intent_id} | Card: ${transactionRecord.card_brand} *${transactionRecord.card_last4}]`,
+      p_transaction: transactionRecord,
+    });
 
-    const { data: orderData, error: orderErr } = await supabase
-      .from("orders")
-      .insert(orderPayload)
-      .select()
-      .maybeSingle();
-
-    if (orderErr) {
-      console.warn("[stripeService] Supabase orders table insert warning:", orderErr.message);
-      supabaseError = orderErr.message;
-    } else {
-      savedOrder = orderData;
-    }
-
-    // 2. Insert order items if order was created
-    if (savedOrder?.id && items.length > 0) {
-      const lineItems = items.map((i) => ({
-        order_id: savedOrder.id,
-        product_id: typeof i.id === "number" ? i.id : null,
-        title: i.title,
-        price: Number(i.price),
-        qty: Number(i.qty || 1),
-        image: i.image,
-      }));
-
-      const { data: itemsData, error: itemsErr } = await supabase
-        .from("order_items")
-        .insert(lineItems)
-        .select();
-
-      if (itemsErr) {
-        console.warn("[stripeService] Supabase order_items insert warning:", itemsErr.message);
-      } else {
-        savedItems = itemsData || [];
-      }
+    if (rpcErr) {
+      console.warn("[stripeService] create_order_secure RPC error:", rpcErr.message);
+      supabaseError = rpcErr.message;
+    } else if (rpcData?.success) {
+      savedOrder = rpcData.order;
+      savedItems = rpcData.items || [];
     }
   } catch (err) {
     console.error("[stripeService] Supabase persistence exception:", err.message);

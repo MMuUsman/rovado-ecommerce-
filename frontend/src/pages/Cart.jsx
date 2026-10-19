@@ -85,9 +85,15 @@ export default function Cart() {
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_20rem]">
           <div className="space-y-6">
             {items.length === 0 && (
-              <p className="rounded-xl bg-neutral-50 p-8 text-center text-sm text-stone-500">
-                Your cart is empty.
-              </p>
+              <div className="rounded-xl bg-neutral-50 p-8 text-center text-sm text-stone-500">
+                <p>Your cart is empty.</p>
+                <Link
+                  to="/category"
+                  className="mt-3 inline-block rounded-lg bg-green-600 px-5 py-2.5 text-xs font-semibold uppercase text-white hover:bg-green-700 transition"
+                >
+                  Continue Shopping
+                </Link>
+              </div>
             )}
             {items.map((item) => (
               <CartRow key={item.id} item={item} onQty={updateQty} onRemove={removeItem} />
@@ -114,12 +120,21 @@ export default function Cart() {
               <span>Order total:</span>
               <span>${total.toFixed(2)}</span>
             </div>
-            <Link
-              to="/checkout"
-              className="mt-6 block w-full rounded-xl bg-green-600 py-4 text-center text-xs font-medium uppercase text-white"
-            >
-              Checkout
-            </Link>
+            {items.length > 0 ? (
+              <Link
+                to="/checkout"
+                className="mt-6 block w-full rounded-xl bg-green-600 py-4 text-center text-xs font-medium uppercase text-white hover:bg-green-700 transition"
+              >
+                Checkout
+              </Link>
+            ) : (
+              <button
+                disabled
+                className="mt-6 block w-full rounded-xl bg-stone-200 py-4 text-center text-xs font-medium uppercase text-stone-400 cursor-not-allowed"
+              >
+                Checkout
+              </button>
+            )}
           </aside>
         </div>
       </section>

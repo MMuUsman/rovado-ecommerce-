@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { ChevronRight, Camera, Trash2 } from "lucide-react";
+import { ChevronRight, Camera, Trash2, Package, Truck, MapPin, CheckCircle } from "lucide-react";
 import { Header, Breadcrumb, PageShell } from "../components/Layout";
 import { useAuth } from "../context/AuthContext";
 import { supabase } from "../services/supabaseClient";
@@ -485,55 +485,153 @@ export default function Profile() {
                 {orders.map((o) => (
                   <div
                     key={o.id}
-                    className="rounded-xl border border-stone-200 p-4"
+                    className="rounded-xl border border-stone-200 p-5 space-y-4"
                   >
-                    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                    {/* Header info */}
+                    <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 pb-3">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <p className="text-sm font-bold">Order #{o.id}</p>
+                          <span
+                            className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                              (o.payment_status === "paid" || o.status === "paid")
+                                ? "bg-green-100 text-green-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            Payment: {o.payment_status || (o.status === "paid" ? "Paid" : "Pending")}
+                          </span>
+                          <span
+                            className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                              o.delivery_status === "delivered" || o.status === "delivered"
+                                ? "bg-green-100 text-green-800"
+                                : o.delivery_status === "shipped" || o.status === "shipped"
+                                ? "bg-purple-100 text-purple-800"
+                                : o.delivery_status === "cancelled" || o.status === "cancelled"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-blue-100 text-blue-800"
+                            }`}
+                          >
+                            Delivery: {o.delivery_status || o.status || "processing"}
+                          </span>
                           {o.payment_method === "stripe" && (
                             <span className="rounded bg-purple-100 px-2 py-0.5 text-[10px] font-bold uppercase text-purple-800">
                               Stripe Sandbox {o.billing?.transaction?.card_last4 ? `(*${o.billing.transaction.card_last4})` : ""}
                             </span>
                           )}
+                          {o.payment_method && o.payment_method !== "stripe" && (
+                            <span className="rounded bg-neutral-100 px-2 py-0.5 text-[10px] font-bold uppercase text-stone-700">
+                              {o.payment_method}
+                            </span>
+                          )}
                         </div>
-                        <p className="text-xs text-stone-500 mt-0.5">
-                          {new Date(o.created_at).toLocaleDateString()} ·{" "}
-                          <span className="uppercase font-semibold">{o.status}</span>
+                        <p className="text-xs text-stone-500 mt-1">
+                          Placed on: {new Date(o.created_at).toLocaleDateString()} at {new Date(o.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                           {o.billing?.transaction?.payment_intent_id && (
                             <span className="ml-1 text-[11px] font-mono text-stone-400">
-                              · {o.billing.transaction.payment_intent_id.slice(0, 16)}…
+                              · Ref: {o.billing.transaction.payment_intent_id.slice(0, 16)}…
                             </span>
                           )}
                         </p>
                       </div>
-                      <p className="text-base font-bold text-green-600">
-                        ${Number(o.total).toFixed(2)}
-                      </p>
+
+                      <div className="text-right">
+                        <p className="text-xs uppercase text-stone-500">Order Total</p>
+                        <p className="text-lg font-bold text-green-600">
+                          ${Number(o.total).toFixed(2)}
+                        </p>
+                      </div>
                     </div>
 
+                    {/* Shipping Address & Expected Delivery */}
+                    {o.billing && (
+                      <div className="rounded-lg bg-neutral-50 p-3 text-xs text-stone-600">
+                        <div className="flex flex-wrap items-start justify-between gap-2">
+                          <div>
+                            <p className="font-bold uppercase text-black text-[11px] mb-1">
+                              Shipping Address:
+                            </p>
+                            <p>
+                              {[o.billing.first_name, o.billing.last_name].filter(Boolean).join(" ")}
+                            </p>
+                            <p>
+                              {[o.billing.address, o.billing.city, o.billing.postcode, o.billing.country].filter(Boolean).join(", ")}
+                            </p>
+                            {(o.billing.phone || o.billing.email) && (
+                              <p className="text-stone-400 mt-0.5">
+                                {[o.billing.phone, o.billing.email].filter(Boolean).join(" · ")}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold uppercase text-black text-[11px] mb-1">
+                              Estimated Delivery:
+                            </p>
+                            <p className="text-green-700 font-medium">
+                              {o.delivery_status === "delivered" || o.status === "delivered"
+                                ? "Delivered ✓"
+                                : "3 – 5 business days"}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Order Items with Snapshot Details */}
                     {o.order_items?.length > 0 && (
-                      <div className="space-y-2 border-t border-stone-200 pt-3">
+                      <div className="space-y-3 pt-1">
+                        <p className="text-xs font-bold uppercase text-stone-500">Items Ordered:</p>
                         {o.order_items.map((it) => (
                           <div
                             key={it.id}
-                            className="flex items-center gap-3 text-sm"
+                            className="flex items-center gap-3 rounded-lg border border-neutral-100 p-2 text-sm"
                           >
                             <img
                               src={it.image}
                               alt={it.title}
-                              className="size-12 rounded object-cover"
+                              className="size-14 rounded object-cover"
+                              onError={(e) => {
+                                e.target.src = "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=100&q=80";
+                              }}
                             />
                             <div className="min-w-0 flex-1">
-                              <p className="truncate font-medium">{it.title}</p>
-                              <p className="text-xs text-stone-500">
-                                x {it.qty} · ${Number(it.price).toFixed(2)}
-                              </p>
+                              <p className="truncate font-medium text-black">{it.title}</p>
+                              <div className="flex flex-wrap items-center gap-3 text-xs text-stone-500 mt-1">
+                                <span>Quantity: <b>{it.qty}</b></span>
+                                <span>Unit Price: <b>${Number(it.price).toFixed(2)}</b></span>
+                                <span>Subtotal: <b className="text-black">${(Number(it.price) * Number(it.qty)).toFixed(2)}</b></span>
+                              </div>
                             </div>
                           </div>
                         ))}
                       </div>
                     )}
+
+                    {/* Cost Summary Breakdown */}
+                    <div className="border-t border-stone-200 pt-3 text-xs text-stone-600">
+                      <div className="flex justify-between py-0.5">
+                        <span>Items Subtotal:</span>
+                        <span className="font-medium text-black">
+                          ${Number(o.subtotal || (Number(o.total) - Number(o.shipping_fee || 0))).toFixed(2)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between py-0.5">
+                        <span>Shipping Fee:</span>
+                        <span className="font-medium text-black">
+                          {Number(o.shipping_fee || 0) === 0 ? "Free" : `$${Number(o.shipping_fee).toFixed(2)}`}
+                        </span>
+                      </div>
+                      {Number(o.discount || 0) > 0 && (
+                        <div className="flex justify-between py-0.5 text-green-600">
+                          <span>Discount:</span>
+                          <span className="font-medium">-${Number(o.discount).toFixed(2)}</span>
+                        </div>
+                      )}
+                      <div className="flex justify-between border-t border-stone-200 mt-1.5 pt-1.5 text-sm font-bold text-black">
+                        <span>Grand Total:</span>
+                        <span className="text-green-600">${Number(o.total).toFixed(2)}</span>
+                      </div>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -541,11 +639,32 @@ export default function Profile() {
 
             {/* MY ADDRESS */}
             {active === "My address" && (
-              <div className="max-w-2xl space-y-4 text-sm text-stone-500">
-                <p>
-                  Your saved shipping addresses will appear here. This feature
-                  will be available soon.
-                </p>
+              <div className="max-w-2xl space-y-4 text-sm text-stone-600">
+                {orders.length > 0 && orders[0]?.billing?.address ? (
+                  <div className="rounded-xl border border-stone-200 p-5">
+                    <div className="flex items-center gap-2 mb-3">
+                      <MapPin size={16} className="text-green-600" />
+                      <h3 className="font-bold text-black">Default Shipping Address</h3>
+                      <span className="rounded bg-green-100 px-2 py-0.5 text-[10px] font-bold uppercase text-green-700">
+                        From Latest Order
+                      </span>
+                    </div>
+                    <p className="font-semibold text-black">
+                      {[orders[0].billing.first_name, orders[0].billing.last_name].filter(Boolean).join(" ")}
+                    </p>
+                    <p className="mt-1">{orders[0].billing.address}</p>
+                    <p>{[orders[0].billing.city, orders[0].billing.postcode, orders[0].billing.country].filter(Boolean).join(", ")}</p>
+                    {orders[0].billing.phone && <p className="mt-2 text-xs text-stone-500">Phone: {orders[0].billing.phone}</p>}
+                    {orders[0].billing.email && <p className="text-xs text-stone-500">Email: {orders[0].billing.email}</p>}
+                  </div>
+                ) : (
+                  <div className="rounded-xl bg-neutral-50 p-6 text-stone-500">
+                    <p>No saved shipping address yet.</p>
+                    <p className="text-xs text-stone-400 mt-1">
+                      Your shipping address is automatically saved when you place an order.
+                    </p>
+                  </div>
+                )}
               </div>
             )}
 

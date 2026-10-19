@@ -124,12 +124,13 @@ export default function AdminOrders() {
   }, []);
 
   const updateStatus = async (id, status) => {
-    const { error } = await supabase
-      .from("orders")
-      .update({ status })
-      .eq("id", id);
+    let { data, error } = await supabase.rpc("update_order_status_admin", {
+      p_order_id: id,
+      p_status: status,
+      p_delivery_status: status,
+    });
 
-    if (error) {
+    if (error || !data?.success) {
       try {
         const { data: { session } } = await supabase.auth.getSession();
         const token = session?.access_token;
@@ -139,7 +140,7 @@ export default function AdminOrders() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token || ""}`,
           },
-          body: JSON.stringify({ status }),
+          body: JSON.stringify({ status, delivery_status: status }),
         });
         if (res.ok) {
           load();
@@ -148,7 +149,7 @@ export default function AdminOrders() {
       } catch (e) {
         console.warn("[admin-orders] backend status update error:", e);
       }
-      alert("Update failed: " + error.message);
+      alert("Update failed: " + (error?.message || data?.error || "Unknown error"));
       return;
     }
     load();

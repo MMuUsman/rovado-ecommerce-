@@ -34,13 +34,31 @@ function Gallery({ product }) {
     "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=524&q=80";
 
   const mainImage = product?.image || FALLBACK;
-  const thumbs = [mainImage, mainImage, mainImage, mainImage];
+
+  let rawImages = [];
+  if (Array.isArray(product?.images) && product.images.length > 0) {
+    rawImages = product.images.filter(Boolean);
+  } else if (typeof product?.images === "string") {
+    try {
+      const parsed = JSON.parse(product.images);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        rawImages = parsed.filter(Boolean);
+      }
+    } catch {}
+  }
+
+  const thumbs =
+    rawImages.length > 0
+      ? (rawImages.includes(mainImage) ? rawImages : [mainImage, ...rawImages]).slice(0, 4)
+      : [mainImage, mainImage, mainImage, mainImage];
+
+  const currentDisplayImage = thumbs[active] || mainImage;
 
   return (
     <div className="w-full">
       <div className="relative overflow-hidden rounded-xl bg-neutral-50">
         <img
-          src={mainImage}
+          src={currentDisplayImage}
           alt={product?.title || "Product"}
           className="aspect-square w-full object-cover"
           onError={(e) => {
@@ -90,11 +108,16 @@ function Gallery({ product }) {
    BuyBox Component
 ========================================================= */
 
-function BuyBox({ product }) {
+function BuyBox({ product, selectedColor, selectedMemory }) {
   const [qty, setQty] = useState(1);
   const { addItem } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [added, setAdded] = useState(false);
+
+  const isOutOfStock =
+    product?.stock === "out" ||
+    product?.stock === 0 ||
+    (typeof product?.stock === "number" && product.stock <= 0);
 
   const displayPrice = product?.price
     ? typeof product.price === "string"
@@ -103,7 +126,7 @@ function BuyBox({ product }) {
     : "$0.00";
 
   const handleAddToCart = () => {
-    if (!product) return;
+    if (!product || isOutOfStock) return;
     const cartProduct = {
       id: product.id,
       title: product.title,
@@ -117,6 +140,8 @@ function BuyBox({ product }) {
       stock: product.stock,
       rating: product.rating,
       reviews: product.reviews,
+      color: selectedColor,
+      memory: selectedMemory,
     };
     addItem(cartProduct, qty);
 
@@ -139,9 +164,15 @@ function BuyBox({ product }) {
         </span>
       </div>
 
-      <p className="flex items-center gap-2 text-xs text-black">
-        <CheckCircle size={12} className="text-green-600" /> In stock
-      </p>
+      {isOutOfStock ? (
+        <p className="flex items-center gap-2 text-xs font-semibold text-red-600">
+          <span className="size-2 rounded-full bg-red-600" /> Out of stock
+        </p>
+      ) : (
+        <p className="flex items-center gap-2 text-xs text-black">
+          <CheckCircle size={12} className="text-green-600" /> In stock
+        </p>
+      )}
 
       <div className="flex items-center gap-3 rounded-lg bg-white p-2 outline outline-1 outline-neutral-400/20">
         <button
@@ -161,14 +192,24 @@ function BuyBox({ product }) {
 
       <button
         onClick={handleAddToCart}
+        disabled={isOutOfStock}
         className={`w-full rounded-xl py-4 text-xs font-medium uppercase text-white transition ${
-          added ? "bg-green-700" : "bg-green-600 hover:bg-green-700"
+          isOutOfStock
+            ? "cursor-not-allowed bg-stone-400"
+            : added
+            ? "bg-green-700"
+            : "bg-green-600 hover:bg-green-700"
         }`}
       >
-        {added ? "✓ Added to Cart!" : "Add To Cart"}
+        {isOutOfStock ? "Out of Stock" : added ? "✓ Added to Cart!" : "Add To Cart"}
       </button>
 
-      <button className="w-full rounded-xl bg-orange-400 py-4 text-xs font-medium uppercase text-black">
+      <button
+        disabled={isOutOfStock}
+        className={`w-full rounded-xl py-4 text-xs font-medium uppercase text-black ${
+          isOutOfStock ? "cursor-not-allowed bg-stone-300 opacity-50" : "bg-orange-400"
+        }`}
+      >
         Buy with PayPal
       </button>
 
@@ -219,49 +260,54 @@ function QuickOrderCard() {
 }
 
 /* =========================================================
-   Frequently Bought Together — WITH WORKING ADD TO CART
+   Frequently Bought Together — WITH REAL PRODUCTS
 ========================================================= */
 
-function FrequentlyBoughtTogether({ product }) {
+function FrequentlyBoughtTogether({ product, relatedProducts = [] }) {
   const { addItem } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
+
+  const extraItems = (relatedProducts || []).slice(0, 2).map((item) => ({
+    key: `rel-${item.id}`,
+    id: item.id,
+    title: item.title,
+    image: item.image,
+    price:
+      typeof item.price === "number"
+        ? item.price
+        : parseFloat(String(item.price || "0").replace(/[^0-9.]/g, "")) || 0,
+    displayPrice:
+      typeof item.price === "string"
+        ? item.price
+        : `$${Number(item.price || 0).toFixed(2)}`,
+    stock: item.stock,
+  }));
+
   const [selected, setSelected] = useState({
     this: true,
-    headphone: false,
-    watch: false,
+    ...(extraItems[0] ? { [extraItems[0].key]: false } : {}),
+    ...(extraItems[1] ? { [extraItems[1].key]: false } : {}),
   });
   const [added, setAdded] = useState(false);
 
-  const extraItems = [
-    {
-      key: "headphone",
-      id: "ext-headphone",
-      title: "BOSO 2 Wireless On Ear Headphone",
-      image:
-        "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=190&q=80",
-      price: 369,
-      displayPrice: "$369.00",
-    },
-    {
-      key: "watch",
-      id: "ext-watch",
-      title: "Opplo Watch Series 8 GPS + Cellular",
-      image:
-        "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=190&q=80",
-      price: 129,
-      displayPrice: "$129.00",
-    },
-  ];
+  useEffect(() => {
+    setSelected((prev) => ({
+      this: prev.this ?? true,
+      ...(extraItems[0] ? { [extraItems[0].key]: prev[extraItems[0].key] ?? false } : {}),
+      ...(extraItems[1] ? { [extraItems[1].key]: prev[extraItems[1].key] ?? false } : {}),
+    }));
+  }, [relatedProducts]);
 
   const currentPrice =
     typeof product?.price === "number"
       ? product.price
       : parseFloat(String(product?.price || "0").replace(/[^0-9.]/g, "")) || 0;
 
-  const totalPrice =
-    (selected.this ? currentPrice : 0) +
-    (selected.headphone ? 369 : 0) +
-    (selected.watch ? 129 : 0);
+  const extraTotal = extraItems.reduce((acc, it) => {
+    return acc + (selected[it.key] ? it.price : 0);
+  }, 0);
+
+  const totalPrice = (selected.this ? currentPrice : 0) + extraTotal;
 
   const handleAddAllToCart = () => {
     if (selected.this && product) {
@@ -290,7 +336,7 @@ function FrequentlyBoughtTogether({ product }) {
             image: item.image,
             price: item.price,
             shipping: "Free shipping",
-            stock: "in",
+            stock: item.stock || "in",
           },
           1,
         );
@@ -306,7 +352,7 @@ function FrequentlyBoughtTogether({ product }) {
   };
 
   const nothingSelected =
-    !selected.this && !selected.headphone && !selected.watch;
+    !selected.this && !extraItems.some((it) => selected[it.key]);
 
   return (
     <section className="rounded-xl bg-white p-4 sm:p-6">
@@ -326,26 +372,38 @@ function FrequentlyBoughtTogether({ product }) {
                   "https://images.unsplash.com/photo-1518770660439-4636190af475?w=200&q=80";
               }}
             />
-            <span className="text-2xl text-neutral-300">+</span>
-            <img
-              src={extraItems[0].image}
-              alt={extraItems[0].title}
-              className="size-32 rounded-xl object-cover opacity-90 sm:size-40"
-              onError={(e) => {
-                e.target.src =
-                  "https://images.unsplash.com/photo-1518770660439-4636190af475?w=200&q=80";
-              }}
-            />
-            <span className="text-2xl text-neutral-300">+</span>
-            <img
-              src={extraItems[1].image}
-              alt={extraItems[1].title}
-              className="size-32 rounded-xl object-cover opacity-40 sm:size-40"
-              onError={(e) => {
-                e.target.src =
-                  "https://images.unsplash.com/photo-1518770660439-4636190af475?w=200&q=80";
-              }}
-            />
+            {extraItems[0] && (
+              <>
+                <span className="text-2xl text-neutral-300">+</span>
+                <img
+                  src={extraItems[0].image}
+                  alt={extraItems[0].title}
+                  className={`size-32 rounded-xl object-cover sm:size-40 transition ${
+                    selected[extraItems[0].key] ? "opacity-100" : "opacity-40"
+                  }`}
+                  onError={(e) => {
+                    e.target.src =
+                      "https://images.unsplash.com/photo-1518770660439-4636190af475?w=200&q=80";
+                  }}
+                />
+              </>
+            )}
+            {extraItems[1] && (
+              <>
+                <span className="text-2xl text-neutral-300">+</span>
+                <img
+                  src={extraItems[1].image}
+                  alt={extraItems[1].title}
+                  className={`size-32 rounded-xl object-cover sm:size-40 transition ${
+                    selected[extraItems[1].key] ? "opacity-100" : "opacity-40"
+                  }`}
+                  onError={(e) => {
+                    e.target.src =
+                      "https://images.unsplash.com/photo-1518770660439-4636190af475?w=200&q=80";
+                  }}
+                />
+              </>
+            )}
           </div>
 
           <ul className="space-y-3 text-sm">
@@ -742,14 +800,21 @@ export default function ProductDetail() {
           </div>
 
           <div className="space-y-4">
-            <BuyBox product={product} />
+            <BuyBox
+              product={product}
+              selectedColor={colors[color]?.name}
+              selectedMemory={memoryOptions[memory]}
+            />
             <QuickOrderCard />
           </div>
         </div>
       </section>
 
       {/* ============ FREQUENTLY BOUGHT TOGETHER — WORKING ✅ ============ */}
-      <FrequentlyBoughtTogether product={product} />
+      <FrequentlyBoughtTogether
+        product={product}
+        relatedProducts={relatedData}
+      />
 
       {/* ============ TABS SECTION ============ */}
       <section className="rounded-xl bg-white p-4 sm:p-6">

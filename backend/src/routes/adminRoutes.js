@@ -1,13 +1,8 @@
 import { Router } from "express";
-import { createClient } from "@supabase/supabase-js";
+import { supabase, getUserClient } from "../config/supabase.js";
 import { requireUser, requireAdmin } from "../middleware/authMiddleware.js";
-import "dotenv/config";
 
 const router = Router();
-const supabase = createClient(
-  process.env.SUPABASE_URL || "",
-  process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.VITE_SUPABASE_ANON_KEY || ""
-);
 
 // All routes here require authenticated admin
 router.use(requireUser, requireAdmin);
@@ -69,14 +64,14 @@ router.get("/orders", async (req, res) => {
 
 router.put("/orders/:id/status", async (req, res) => {
   const { id } = req.params;
-  const { status } = req.body;
+  const { status, delivery_status } = req.body;
   if (!status) return res.status(400).json({ error: "Status is required." });
 
-  const { data, error } = await supabase
-    .from("orders")
-    .update({ status })
-    .eq("id", id)
-    .select();
+  const { data, error } = await supabase.rpc("update_order_status_admin", {
+    p_order_id: parseInt(id, 10),
+    p_status: status,
+    p_delivery_status: delivery_status || status,
+  });
 
   if (error) return res.status(400).json({ error: error.message });
   return res.json(data);

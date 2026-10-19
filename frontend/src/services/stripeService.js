@@ -214,39 +214,27 @@ export async function executeStripeSandboxCheckout({
   };
 
   let savedOrder = null;
-  const userId = user?.id || "00000000-0000-0000-0000-000000000000";
+  let savedItems = [];
+  const userId = user?.id || null;
 
-  // Insert directly into Supabase orders
-  const { data: orderData, error: orderErr } = await supabase
-    .from("orders")
-    .insert({
-      user_id: userId,
-      subtotal,
-      shipping,
-      tax,
-      total,
-      status: "paid",
-      payment_method: "stripe",
-      billing: enrichedBilling,
-      notes: `Stripe Sandbox Payment Verified [ID: ${mockPaymentIntentId} | Card: ${validation.brand} *${validation.last4}]`,
-    })
-    .select()
-    .single();
+  try {
+    const { data: rpcData, error: rpcErr } = await supabase.rpc("create_order_secure", {
+      p_user_id: userId,
+      p_items: items,
+      p_billing: enrichedBilling,
+      p_payment_method: "stripe",
+      p_notes: `Stripe Sandbox Payment Verified [ID: ${mockPaymentIntentId} | Card: ${validation.brand} *${validation.last4}]`,
+      p_transaction: transactionRecord,
+    });
 
-  if (!orderErr && orderData) {
-    savedOrder = orderData;
-
-    // Insert order items
-    const lineItems = items.map((i) => ({
-      order_id: savedOrder.id,
-      product_id: typeof i.id === "number" ? i.id : null,
-      title: i.title,
-      price: i.price,
-      qty: i.qty,
-      image: i.image,
-    }));
-
-    await supabase.from("order_items").insert(lineItems);
+    if (!rpcErr && rpcData?.success) {
+      savedOrder = rpcData.order;
+      savedItems = rpcData.items || [];
+    } else if (rpcErr) {
+      console.warn("[Stripe] Frontend create_order_secure fallback warning:", rpcErr.message);
+    }
+  } catch (directErr) {
+    console.error("[Stripe] Direct order RPC exception:", directErr);
   }
 
   return {
@@ -257,10 +245,12 @@ export async function executeStripeSandboxCheckout({
       id: `ord_${Date.now()}`,
       user_id: userId,
       total,
-      status: "paid",
+      status: "processing",
       payment_method: "stripe",
       billing: enrichedBilling,
+      created_at: new Date().toISOString(),
     },
+    items: savedItems.length > 0 ? savedItems : items,
     transaction: transactionRecord,
     receiptUrl: transactionRecord.receipt_url,
     supabaseSynced: !!savedOrder?.id,

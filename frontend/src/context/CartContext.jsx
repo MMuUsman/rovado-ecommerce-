@@ -20,11 +20,25 @@ export function CartProvider({ children }) {
   }, [items]);
 
   const addItem = (product, qty = 1) => {
+    if (!product) return false;
+    if (product.stock === "out") {
+      return false;
+    }
+
+    const priceNum =
+      typeof product.price === "number"
+        ? product.price
+        : parseFloat(String(product.price || 0).replace(/[^0-9.]/g, "")) || 0;
+
+    const addedQty = Math.max(1, Number(qty) || 1);
+
     setItems((cur) => {
       const existing = cur.find((i) => String(i.id) === String(product.id));
       if (existing) {
         return cur.map((i) =>
-          String(i.id) === String(product.id) ? { ...i, qty: i.qty + qty } : i
+          String(i.id) === String(product.id)
+            ? { ...i, qty: i.qty + addedQty, color: product.color || i.color, memory: product.memory || i.memory }
+            : i
         );
       }
       return [
@@ -33,17 +47,20 @@ export function CartProvider({ children }) {
           id: product.id,
           title: product.title,
           image: product.image,
-          price: Number(product.price),
+          price: priceNum,
           badge: product.badge,
           shipping: product.shipping,
           stock: product.stock,
           rating: product.rating,
           reviews: product.reviews,
           save: product.save,
-          qty,
+          color: product.color || null,
+          memory: product.memory || null,
+          qty: addedQty,
         },
       ];
     });
+    return true;
   };
 
   const removeItem = (id) =>

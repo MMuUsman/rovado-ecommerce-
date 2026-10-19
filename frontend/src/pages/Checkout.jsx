@@ -188,8 +188,14 @@ export default function Checkout() {
       return;
     }
 
-    if (!billing.email) {
-      setError("Please provide a valid email address for your order confirmation.");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!billing.email || !emailRegex.test(billing.email.trim())) {
+      setError("Please provide a valid email address for order confirmation.");
+      return;
+    }
+
+    if (!billing.phone || billing.phone.trim().length < 7) {
+      setError("Please provide a valid contact phone number.");
       return;
     }
 
@@ -233,23 +239,16 @@ export default function Checkout() {
       // --- 2. Traditional Payment Methods (Bank, COD, Paypal) ---
       setLoadingMessage("Placing order…");
 
-      const userId = user?.id || "00000000-0000-0000-0000-000000000000";
+      const userId = user?.id || null;
 
-      const { data: order, error: orderErr } = await supabase
-        .from("orders")
-        .insert({
-          user_id: userId,
-          subtotal,
-          shipping,
-          tax,
-          total,
-          status: "pending",
-          payment_method: payment,
-          billing,
-          notes: billing.notes,
-        })
-        .select()
-        .single();
+      const { data: rpcData, error: orderErr } = await supabase.rpc("create_order_secure", {
+        p_user_id: userId,
+        p_items: items,
+        p_billing: billing,
+        p_payment_method: payment,
+        p_notes: billing.notes || "",
+        p_transaction: {},
+      });
 
       if (orderErr) {
         setLoading(false);
@@ -257,27 +256,11 @@ export default function Checkout() {
         return;
       }
 
-      const lineItems = items.map((i) => ({
-        order_id: order.id,
-        product_id: typeof i.id === "number" ? i.id : null,
-        title: i.title,
-        price: i.price,
-        qty: i.qty,
-        image: i.image,
-      }));
-
-      const { error: itemsErr } = await supabase.from("order_items").insert(lineItems);
       setLoading(false);
-
-      if (itemsErr) {
-        setError(itemsErr.message);
-        return;
-      }
-
       clearCart();
       navigate("/profile", {
         replace: true,
-        state: { tab: "My order", orderSuccess: true, orderId: order.id },
+        state: { tab: "My order", orderSuccess: true, orderId: rpcData?.order_id || rpcData?.order?.id },
       });
     } catch (err) {
       console.error("[Checkout] Order processing failed:", err);

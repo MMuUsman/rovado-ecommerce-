@@ -1,5 +1,215 @@
 [
   {
+    "order_id": 12,
+    "created_at": "2026-10-19T18:16:19.277Z",
+    "user_id": null,
+    "customer_email": "alex.taylor@rovadotest.com",
+    "customer_name": "Alex Taylor",
+    "totals": {
+      "subtotal": 3898,
+      "shipping": 38.980000000000004,
+      "tax": 77.96000000000001,
+      "total": 4014.94
+    },
+    "items": [
+      {
+        "id": 1,
+        "title": "Apple MacBook Pro 16 M3 Max",
+        "price": 3499,
+        "qty": 1,
+        "image": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200"
+      },
+      {
+        "id": 4,
+        "title": "Sony WH-1000XM5 Wireless Headphones",
+        "price": 399,
+        "qty": 1,
+        "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200"
+      }
+    ],
+    "transaction": {
+      "transaction_id": "ch_test_a638883a93c966351b6cb286",
+      "payment_intent_id": "pi_test_8c9eac6dde0b7de17e93c475",
+      "gateway": "stripe_sandbox",
+      "payment_method": "stripe",
+      "card_brand": "Visa",
+      "card_last4": "4242",
+      "test_card": "4242 4242 4242 4242",
+      "amount": "4014.94",
+      "currency": "USD",
+      "status": "succeeded",
+      "paid_at": "2026-10-19T18:16:19.001Z",
+      "receipt_url": "https://pay.stripe.com/receipts/test/pi_test_8c9eac6dde0b7de17e93c475",
+      "mock_mode": true
+    },
+    "supabase_persisted": true,
+    "supabase_error": null
+  },
+  {
+    "order_id": 11,
+    "created_at": "2026-10-19T18:06:29.019Z",
+    "user_id": null,
+    "customer_email": "alex.taylor@rovadotest.com",
+    "customer_name": "Alex Taylor",
+    "totals": {
+      "subtotal": 3898,
+      "shipping": 38.980000000000004,
+      "tax": 77.96000000000001,
+      "total": 4014.94
+    },
+    "items": [
+      {
+        "id": 1,
+        "title": "Apple MacBook Pro 16 M3 Max",
+        "price": 3499,
+        "qty": 1,
+        "image": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200"
+      },
+      {
+        "id": 4,
+        "title": "Sony WH-1000XM5 Wireless Headphones",
+        "price": 399,
+        "qty": 1,
+        "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200"
+      }
+    ],
+    "transaction": {
+      "transaction_id": "ch_test_5842c5e9ee70476973b3300d",
+      "payment_intent_id": "pi_test_3a49020e5c484c661b48d3db",
+      "gateway": "stripe_sandbox",
+      "payment_method": "stripe",
+      "card_brand": "Visa",
+      "card_last4": "4242",
+      "test_card": "4242 4242 4242 4242",
+      "amount": "4014.94",
+      "currency": "USD",
+      "status": "succeeded",
+      "paid_at": "2026-10-19T18:06:28.737Z",
+      "receipt_url": "https://pay.stripe.com/receipts/test/pi_test_3a49020e5c484c661b48d3db",
+      "mock_mode": true
+    },
+    "supabase_persisted": true,
+    "supabase_error": null
+  },
+  {
+    "order_id": 10,
+    "created_at": "2026-10-19T18:06:21.127Z",
+    "user_id": null,
+    "customer_email": "alex@example.com",
+    "customer_name": "Alex Taylor",
+    "totals": {
+      "subtotal": 100,
+      "shipping": 1,
+      "tax": 2,
+      "total": 103
+    },
+    "items": [
+      {
+        "id": 1,
+        "qty": 1
+      }
+    ],
+    "transaction": {
+      "transaction_id": "ch_test2",
+      "payment_intent_id": "pi_test2",
+      "gateway": "stripe_sandbox",
+      "payment_method": "stripe",
+      "card_brand": "Visa",
+      "card_last4": "4242",
+      "test_card": "Stripe Test Card",
+      "amount": "103.00",
+      "currency": "USD",
+      "status": "succeeded",
+      "paid_at": "2026-10-19T18:06:20.760Z",
+      "receipt_url": "https://pay.stripe.com/receipts/test/pi_test2",
+      "mock_mode": true
+    },
+    "supabase_persisted": true,
+    "supabase_error": null
+  },
+  {
+    "order_id": "sandbox_ord_1792433151883",
+    "created_at": "2026-10-19T18:05:51.883Z",
+    "user_id": null,
+    "customer_email": "alex@example.com",
+    "customer_name": "Alex Taylor",
+    "totals": {
+      "subtotal": 100,
+      "shipping": 1,
+      "tax": 2,
+      "total": 103
+    },
+    "items": [
+      {
+        "id": 1,
+        "qty": 1
+      }
+    ],
+    "transaction": {
+      "transaction_id": "ch_test1",
+      "payment_intent_id": "pi_test1",
+      "gateway": "stripe_sandbox",
+      "payment_method": "stripe",
+      "card_brand": "Visa",
+      "card_last4": "4242",
+      "test_card": "Stripe Test Card",
+      "amount": "103.00",
+      "currency": "USD",
+      "status": "succeeded",
+      "paid_at": "2026-10-19T18:05:51.040Z",
+      "receipt_url": "https://pay.stripe.com/receipts/test/pi_test1",
+      "mock_mode": true
+    },
+    "supabase_persisted": false,
+    "supabase_error": null
+  },
+  {
+    "order_id": "sandbox_ord_1792433110040",
+    "created_at": "2026-10-19T18:05:10.040Z",
+    "user_id": null,
+    "customer_email": "alex.taylor@rovadotest.com",
+    "customer_name": "Alex Taylor",
+    "totals": {
+      "subtotal": 3898,
+      "shipping": 38.980000000000004,
+      "tax": 77.96000000000001,
+      "total": 4014.94
+    },
+    "items": [
+      {
+        "id": 1,
+        "title": "Apple MacBook Pro 16 M3 Max",
+        "price": 3499,
+        "qty": 1,
+        "image": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200"
+      },
+      {
+        "id": 4,
+        "title": "Sony WH-1000XM5 Wireless Headphones",
+        "price": 399,
+        "qty": 1,
+        "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200"
+      }
+    ],
+    "transaction": {
+      "transaction_id": "ch_test_b69b9b449357779cbfccfcda",
+      "payment_intent_id": "pi_test_61fe282622e1544ea91da12c",
+      "gateway": "stripe_sandbox",
+      "payment_method": "stripe",
+      "card_brand": "Visa",
+      "card_last4": "4242",
+      "test_card": "4242 4242 4242 4242",
+      "amount": "4014.94",
+      "currency": "USD",
+      "status": "succeeded",
+      "paid_at": "2026-10-19T18:05:09.269Z",
+      "receipt_url": "https://pay.stripe.com/receipts/test/pi_test_61fe282622e1544ea91da12c",
+      "mock_mode": true
+    },
+    "supabase_persisted": false,
+    "supabase_error": null
+  },
+  {
     "order_id": "sandbox_ord_1792431807530",
     "created_at": "2026-10-19T17:43:27.530Z",
     "user_id": "00000000-0000-0000-0000-000000000000",
