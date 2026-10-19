@@ -24,6 +24,8 @@ import {
 import { supabase } from "../services/supabaseClient";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+import { useWishlist } from "../context/WishlistContext";
+import { useLoading } from "../context/LoadingContext";
 
 const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80";
@@ -68,6 +70,8 @@ function ProductCard({ product }) {
   const { image, badge, title, rating, reviews, price, oldPrice, shipping, stock, isNew } = product;
   const [imgError, setImgError] = useState(false);
   const src = imgError || !image ? FALLBACK_IMG : image;
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const isFav = isInWishlist(product.id);
 
   return (
     <Link
@@ -87,6 +91,20 @@ function ProductCard({ product }) {
             <Badge tone={isNew ? "dark" : "green"}>{badge}</Badge>
           </div>
         )}
+        <button
+          type="button"
+          aria-label="Add to wishlist"
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            toggleWishlist(product);
+          }}
+          className={`absolute right-2 top-2 z-10 grid size-7 sm:size-8 place-items-center rounded-full bg-white/90 shadow-sm transition hover:scale-110 ${
+            isFav ? "text-red-500" : "text-neutral-400 hover:text-red-500"
+          }`}
+        >
+          <Heart size={14} className={isFav ? "fill-red-500 text-red-500" : ""} />
+        </button>
       </div>
 
       {rating != null && <StarRating count={rating} reviews={reviews} />}
@@ -248,6 +266,29 @@ const footerColumns = [
   },
 ];
 
+const getFooterLink = (item) => {
+  const lower = item.toLowerCase();
+  if (lower.includes("laptop") || lower.includes("pc")) return "/laptops";
+  if (lower.includes("phone") || lower.includes("tablet")) return "/cellphones";
+  if (lower.includes("about")) return "/about";
+  if (lower.includes("order") || lower.includes("account")) return "/profile";
+  if (lower.includes("cart")) return "/cart";
+  if (
+    lower.includes("contact") ||
+    lower.includes("service") ||
+    lower.includes("support") ||
+    lower.includes("policy") ||
+    lower.includes("terms") ||
+    lower.includes("faq") ||
+    lower.includes("career") ||
+    lower.includes("seller") ||
+    lower.includes("partner")
+  ) {
+    return "/contact";
+  }
+  return "/category";
+};
+
 /* =========================================================
    Top Bar
 ========================================================= */
@@ -306,8 +347,8 @@ export function TopBar() {
       </div>
 
       <div className="flex items-center gap-6" ref={ref}>
-        <a href="#" className="hover:text-green-600">Sell on Rovado</a>
-        <a href="#" className="hover:text-green-600">Order Tracking</a>
+        <Link to="/contact" className="hover:text-green-600">Sell on Rovado</Link>
+        <Link to="/profile" className="hover:text-green-600">Order Tracking</Link>
 
         <div className="relative">
           <button
@@ -374,6 +415,7 @@ function Header() {
   const navigate = useNavigate();
 
   const { count, subtotal } = useCart();
+  const { count: wishlistCount } = useWishlist();
   const { user, profile, signOut } = useAuth();
 
   const navItems = [
@@ -428,6 +470,10 @@ function Header() {
     }
   };
 
+  const scrollToTopSmooth = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <header ref={headerRef} className="rounded-xl bg-white">
       <TopBar />
@@ -435,7 +481,7 @@ function Header() {
       <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-4 py-3 sm:py-4">
         {/* Logo */}
         <div className="flex items-center gap-3 sm:gap-6">
-          <Link to="/">
+          <Link to="/" onClick={scrollToTopSmooth}>
             <img
               src="/Rovadologo.jpg"
               alt="Rovado logo"
@@ -464,6 +510,9 @@ function Header() {
                 ) : (
                   <Link
                     to={item.to}
+                    onClick={() => {
+                      if (item.to === "/") scrollToTopSmooth();
+                    }}
                     className="flex items-center gap-1 text-black hover:text-green-600"
                   >
                     {item.label}
@@ -522,7 +571,7 @@ function Header() {
           <Link to="/cart" aria-label="Wishlist" className="relative grid size-10 place-items-center rounded-full bg-violet-100">
             <Heart size={18} />
             <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-green-600 text-[10px] text-white">
-              {count}
+              {wishlistCount}
             </span>
           </Link>
 
@@ -625,7 +674,10 @@ function Header() {
                 ) : (
                   <Link
                     to={item.to}
-                    onClick={() => setOpen(false)}
+                    onClick={() => {
+                      setOpen(false);
+                      if (item.to === "/") scrollToTopSmooth();
+                    }}
                     className="block py-3.5 text-sm font-bold uppercase"
                   >
                     {item.label}
@@ -1051,14 +1103,45 @@ function FeaturedBrandsAndTopCategories() {
 
 function DealsOfTheDay({ products = [] }) {
   const deal = products[0];
-  const timers = [
-    { label: "d", value: "162" },
-    { label: "h", value: "09" },
-    { label: "m", value: "32" },
-    { label: "s", value: "34" },
-  ];
+
+  const [timeLeft, setTimeLeft] = useState({ d: "02", h: "14", m: "25", s: "40" });
+
+  useEffect(() => {
+    const calculateTime = () => {
+      const now = new Date();
+      // 48-hour rolling deals window
+      const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 2, 23, 59, 59);
+      const diff = Math.max(0, end - now);
+      const d = String(Math.floor(diff / (1000 * 60 * 60 * 24))).padStart(2, "0");
+      const h = String(Math.floor((diff / (1000 * 60 * 60)) % 24)).padStart(2, "0");
+      const m = String(Math.floor((diff / (1000 * 60)) % 60)).padStart(2, "0");
+      const s = String(Math.floor((diff / 1000) % 60)).padStart(2, "0");
+      setTimeLeft({ d, h, m, s });
+    };
+
+    calculateTime();
+    const interval = setInterval(calculateTime, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   if (!deal) return null;
+
+  const timers = [
+    { label: "d", value: timeLeft.d },
+    { label: "h", value: timeLeft.h },
+    { label: "m", value: timeLeft.m },
+    { label: "s", value: timeLeft.s },
+  ];
+
+  const numPrice = parseFloat(String(deal.price || "").replace(/[^0-9.]/g, ""));
+  const numOld = parseFloat(String(deal.oldPrice || "").replace(/[^0-9.]/g, ""));
+  const savings = (numOld && numPrice && numOld > numPrice)
+    ? `$${(numOld - numPrice).toFixed(2)}`
+    : (deal.save || "$199.00");
+
+  const totalStock = deal.stock_quantity ? Math.max(deal.stock_quantity, 50) : 75;
+  const soldCount = deal.sold != null ? deal.sold : (deal.stock_quantity ? Math.min(Math.round(totalStock * 0.35), totalStock) : 26);
+  const stockPercent = Math.min(Math.round((soldCount / totalStock) * 100), 100);
 
   return (
     <section>
@@ -1082,7 +1165,7 @@ function DealsOfTheDay({ products = [] }) {
           />
           <div className="absolute left-3 sm:left-4 top-3 sm:top-4 rounded-lg bg-green-600 px-2.5 sm:px-3 py-1.5 sm:py-2 text-white">
             <p className="text-[10px] uppercase">Save</p>
-            <p className="text-base sm:text-lg font-medium">$199.00</p>
+            <p className="text-base sm:text-lg font-medium">{savings}</p>
           </div>
         </Link>
         <div>
@@ -1122,11 +1205,16 @@ function DealsOfTheDay({ products = [] }) {
           </div>
           <div className="mt-4 sm:mt-6 border-t border-zinc-200 pt-3 sm:pt-4">
             <div className="h-2 overflow-hidden rounded-full bg-gray-200">
-              <div className="h-2 w-1/3 rounded-full bg-green-600" />
+              <div
+                className="h-2 rounded-full bg-green-600"
+                style={{ width: `${stockPercent}%` }}
+              />
             </div>
             <p className="mt-2 text-xs">
               <span className="text-stone-500">Sold: </span>
-              <span className="font-bold">26/75</span>
+              <span className="font-bold">
+                {soldCount}/{totalStock}
+              </span>
             </p>
           </div>
         </div>
@@ -1607,7 +1695,7 @@ function Footer() {
               <ul className="space-y-2 text-sm capitalize text-stone-500">
                 {col.items.map((item) => (
                   <li key={item}>
-                    <Link to="/category" className="hover:text-green-600">
+                    <Link to={getFooterLink(item)} className="hover:text-green-600">
                       {item}
                     </Link>
                   </li>
@@ -1669,11 +1757,27 @@ function Footer() {
 
 export default function Home() {
   const [allProducts, setAllProducts] = useState([]);
+  const [dealsData, setDealsData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { startLoading, stopLoading } = useLoading();
 
   useEffect(() => {
     (async () => {
+      startLoading("home_products");
       try {
+        // Fetch deals from backend if available
+        try {
+          const res = await fetch("http://localhost:4000/api/deals");
+          if (res.ok) {
+            const json = await res.json();
+            if (json.deals && json.deals.length > 0) {
+              setDealsData(json.deals);
+            }
+          }
+        } catch {
+          // ignore backend fallback
+        }
+
         const { data, error } = await supabase
           .from("products")
           .select("*")
@@ -1707,9 +1811,10 @@ export default function Home() {
         setAllProducts([]);
       } finally {
         setLoading(false);
+        stopLoading("home_products");
       }
     })();
-  }, []);
+  }, [startLoading, stopLoading]);
 
   const bestSellersData = allProducts.filter((p) => p.category === "best-seller");
   const cellphonesData = allProducts.filter((p) => p.category === "cellphones-tablets");
@@ -1749,7 +1854,7 @@ export default function Home() {
         </div>
 
         <FeaturedBrandsAndTopCategories />
-        <DealsOfTheDay products={bestSellersData.length > 0 ? bestSellersData : allProducts} />
+        <DealsOfTheDay products={dealsData.length > 0 ? dealsData : (bestSellersData.length > 0 ? bestSellersData : allProducts)} />
         <MemberBanner />
 
         <ProductRail

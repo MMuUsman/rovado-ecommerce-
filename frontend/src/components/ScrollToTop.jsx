@@ -2,16 +2,16 @@ import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
 export default function ScrollToTop() {
-  const { pathname } = useLocation();
+  const { pathname, search } = useLocation();
 
   useEffect(() => {
-    // Har page change pe top pe scroll karo
+    // Har page ya query change pe top pe scroll karo
     window.scrollTo({
       top: 0,
       left: 0,
-      behavior: "smooth", // ya "smooth" agar animation chahiye
+      behavior: "smooth",
     });
-  }, [pathname]);
+  }, [pathname, search]);
 
   return null;
 }

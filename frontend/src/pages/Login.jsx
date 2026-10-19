@@ -5,7 +5,7 @@ import { Header, Breadcrumb, PageShell } from "../components/Layout";
 import { useAuth } from "../context/AuthContext";
 
 export default function Login() {
-  const { signIn } = useAuth();
+  const { signIn, signInDemo } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const redirectTo = location.state?.from ?? "/";
@@ -91,7 +91,20 @@ export default function Login() {
             {loading ? "Logging in…" : "Login"}
           </button>
 
-          <p className="mt-8 text-xs uppercase">
+          <div className="mt-4 pt-4 border-t border-stone-100">
+            <button
+              type="button"
+              onClick={() => {
+                signInDemo();
+                navigate(redirectTo, { replace: true });
+              }}
+              className="w-full rounded-xl border border-green-600/30 bg-green-50 py-3 text-xs font-bold uppercase tracking-wider text-green-700 transition hover:bg-green-100 flex items-center justify-center gap-1.5"
+            >
+              <span>⚡ 1-Click Demo Customer Login</span>
+            </button>
+          </div>
+
+          <p className="mt-6 text-xs uppercase">
             <span className="text-neutral-400">New user? </span>
             <Link to="/register" className="text-green-600">Sign Up</Link>
           </p>

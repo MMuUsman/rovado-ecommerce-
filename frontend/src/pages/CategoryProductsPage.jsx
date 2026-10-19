@@ -10,6 +10,7 @@ import {
 import { Header, PromoBar, Breadcrumb, PageShell } from "../components/Layout";
 import { ProductGridCard, StarRating } from "../components/Product";
 import { supabase } from "../services/supabaseClient";
+import { useLoading } from "../context/LoadingContext";
 
 const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80";
@@ -496,15 +497,17 @@ export default function CategoryProductsPage({
 }) {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // ✅ URL se brand + subcategory read karo
+  // ✅ URL se brand + subcategory + page read karo
   const urlBrand = searchParams.get("brand") || "";
   const urlSub = searchParams.get("sub") || "";
+  const urlPage = parseInt(searchParams.get("page") || "1", 10) || 1;
 
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { startLoading, stopLoading } = useLoading();
   const [activeCategory, setActiveCategory] = useState(urlSub || "all");
   const [brandFilter, setBrandFilter] = useState(urlBrand);
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(urlPage);
   const [itemsPerPage, setItemsPerPage] = useState(24);
   const [sortBy, setSortBy] = useState("default");
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -525,12 +528,26 @@ export default function CategoryProductsPage({
   useEffect(() => {
     setBrandFilter(urlBrand);
     setActiveCategory(urlSub || "all");
-    setCurrentPage(1);
-  }, [urlBrand, urlSub]);
+    setCurrentPage(urlPage);
+  }, [urlBrand, urlSub, urlPage]);
+
+  const handlePageChange = (newPage) => {
+    const pageNum = Math.max(1, Math.min(newPage, totalPages));
+    setCurrentPage(pageNum);
+    const newParams = new URLSearchParams(searchParams);
+    if (pageNum === 1) {
+      newParams.delete("page");
+    } else {
+      newParams.set("page", String(pageNum));
+    }
+    setSearchParams(newParams);
+    window.scrollTo({ top: 350, behavior: "smooth" });
+  };
 
   /* ---------- Fetch products ---------- */
   useEffect(() => {
     (async () => {
+      startLoading(`category_products_${categoryKey}`);
       try {
         const { data, error } = await supabase
           .from("products")
@@ -564,9 +581,10 @@ export default function CategoryProductsPage({
         console.warn("[category] fetch error:", err);
       } finally {
         setLoading(false);
+        stopLoading(`category_products_${categoryKey}`);
       }
     })();
-  }, [categoryKey]);
+  }, [categoryKey, startLoading, stopLoading]);
 
   /* ---------- Toggle helpers ---------- */
   const toggleBrand = useCallback((brand) => {
@@ -1021,7 +1039,7 @@ export default function CategoryProductsPage({
             <Pagination
               currentPage={currentPage}
               totalPages={totalPages}
-              onPageChange={setCurrentPage}
+              onPageChange={handlePageChange}
             />
           </div>
         </div>

@@ -18,6 +18,8 @@ import { Header, PromoBar, Breadcrumb, PageShell } from "../components/Layout";
 import { StarRating, ProductRail } from "../components/Product";
 import { supabase } from "../services/supabaseClient";
 import { useCart } from "../context/CartContext";
+import { useWishlist } from "../context/WishlistContext";
+import { useLoading } from "../context/LoadingContext";
 import ReviewsSection from "../components/ReviewsSection";
 
 /* =========================================================
@@ -26,6 +28,8 @@ import ReviewsSection from "../components/ReviewsSection";
 
 function Gallery({ product }) {
   const [active, setActive] = useState(0);
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const isWished = isInWishlist(product?.id);
   const FALLBACK =
     "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=524&q=80";
 
@@ -48,8 +52,13 @@ function Gallery({ product }) {
             {product?.badge || "New"}
           </span>
         )}
-        <button className="absolute right-4 top-4 grid size-8 place-items-center rounded-full bg-slate-200">
-          <Heart size={14} />
+        <button
+          type="button"
+          aria-label="Add to wishlist"
+          onClick={() => toggleWishlist(product)}
+          className="absolute right-4 top-4 grid size-8 place-items-center rounded-full bg-slate-200 transition hover:scale-110"
+        >
+          <Heart size={14} className={isWished ? "fill-red-500 text-red-500" : "text-neutral-500"} />
         </button>
       </div>
 
@@ -84,6 +93,7 @@ function Gallery({ product }) {
 function BuyBox({ product }) {
   const [qty, setQty] = useState(1);
   const { addItem } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
   const [added, setAdded] = useState(false);
 
   const displayPrice = product?.price
@@ -163,9 +173,13 @@ function BuyBox({ product }) {
       </button>
 
       <div className="flex items-center justify-between border-b border-zinc-200 pb-4 text-xs">
-        <span className="flex items-center gap-2 text-stone-500">
-          <Heart size={12} /> Wishlist
-        </span>
+        <button
+          type="button"
+          onClick={() => toggleWishlist(product)}
+          className="flex items-center gap-2 text-stone-500 hover:text-red-500 transition"
+        >
+          <Heart size={12} className={isInWishlist(product?.id) ? "fill-red-500 text-red-500" : ""} /> Wishlist
+        </button>
         <span className="flex items-center gap-2 text-stone-500">
           <ArrowLeftRight size={12} /> Compare
         </span>
@@ -210,6 +224,7 @@ function QuickOrderCard() {
 
 function FrequentlyBoughtTogether({ product }) {
   const { addItem } = useCart();
+  const { isInWishlist, toggleWishlist } = useWishlist();
   const [selected, setSelected] = useState({
     this: true,
     headphone: false,
@@ -389,10 +404,10 @@ function FrequentlyBoughtTogether({ product }) {
           </button>
 
           <button
-            onClick={() => alert("Added to wishlist!")}
-            className="mt-4 flex items-center gap-2 text-sm text-stone-500 hover:text-green-600"
+            onClick={() => toggleWishlist(product)}
+            className="mt-4 flex items-center gap-2 text-sm text-stone-500 hover:text-green-600 transition"
           >
-            <Heart size={14} /> Add all to Wishlist
+            <Heart size={14} className={isInWishlist(product?.id) ? "fill-red-500 text-red-500" : ""} /> Add all to Wishlist
           </button>
         </div>
       </div>
@@ -434,6 +449,9 @@ export default function ProductDetail() {
 
   const memoryOptions = ["64GB", "128GB", "256GB", "512GB"];
 
+  const { startLoading, stopLoading } = useLoading();
+  const { isInWishlist, toggleWishlist } = useWishlist();
+
   useEffect(() => {
     (async () => {
       if (!id) {
@@ -441,12 +459,26 @@ export default function ProductDetail() {
         return;
       }
 
+      startLoading("product_detail");
       try {
-        const { data: prod, error } = await supabase
+        const cleanId = String(id).trim();
+        const numericId = parseInt(cleanId, 10);
+        const queryId = !isNaN(numericId) && String(numericId) === cleanId ? numericId : cleanId;
+
+        let { data: prod, error } = await supabase
           .from("products")
           .select("*")
-          .eq("id", id)
+          .eq("id", queryId)
           .maybeSingle();
+
+        if (!prod && !error && queryId !== cleanId) {
+          const fallback = await supabase
+            .from("products")
+            .select("*")
+            .eq("id", cleanId)
+            .maybeSingle();
+          if (fallback.data) prod = fallback.data;
+        }
 
         if (error) console.warn("[product] fetch error:", error.message);
 
@@ -469,24 +501,24 @@ export default function ProductDetail() {
           } catch (e) {
             console.warn("Recently viewed save error:", e);
           }
+
+          const category = prod.category || "cellphones-tablets";
+          const { data: related } = await supabase
+            .from("products")
+            .select("*")
+            .eq("category", category)
+            .eq("is_active", true)
+            .neq("id", prod.id)
+            .limit(6);
+
+          if (related) setRelatedData(related.map(normalizeProduct));
         }
-
-        const category = prod?.category || "cellphones-tablets";
-        const { data: related } = await supabase
-          .from("products")
-          .select("*")
-          .eq("category", category)
-          .eq("is_active", true)
-          .neq("id", id)
-          .limit(6);
-
-        if (related) setRelatedData(related.map(normalizeProduct));
 
         const { data: recent } = await supabase
           .from("products")
           .select("*")
           .eq("is_active", true)
-          .neq("id", id)
+          .neq("id", queryId)
           .order("id", { ascending: false })
           .limit(4);
 
@@ -495,9 +527,10 @@ export default function ProductDetail() {
         console.warn("[product] error:", err);
       } finally {
         setLoading(false);
+        stopLoading("product_detail");
       }
     })();
-  }, [id]);
+  }, [id, startLoading, stopLoading]);
 
   function normalizeProduct(p) {
     return {

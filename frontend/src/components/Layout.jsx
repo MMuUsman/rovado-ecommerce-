@@ -1,6 +1,7 @@
 
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+import { useWishlist } from "../context/WishlistContext";
 import {
   Phone,
   Search,
@@ -20,7 +21,7 @@ import {
   Youtube,
   Linkedin,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 
 
@@ -81,8 +82,8 @@ const languages = ["Eng"];
       </div>
 
       <div className="flex items-center gap-6" ref={ref}>
-        <a href="#" className="hover:text-green-600">Sell on Rovado</a>
-        <a href="#" className="hover:text-green-600">Order Tracking</a>
+        <Link to="/contact" className="hover:text-green-600">Sell on Rovado</Link>
+        <Link to="/profile" className="hover:text-green-600">Order Tracking</Link>
 
         {/* ✅ Currency Dropdown */}
         <div className="relative">
@@ -150,6 +151,7 @@ export function Header() {
   const dropdownRef = useRef(null);
 
   const { count, subtotal } = useCart();
+  const { count: wishlistCount } = useWishlist();
   const { user, profile, signOut } = useAuth();
 
   const navItems = [
@@ -205,6 +207,10 @@ export function Header() {
     }
   };
 
+  const scrollToTopSmooth = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
   return (
     <header className="rounded-xl bg-white">
       <TopBar />
@@ -212,7 +218,7 @@ export function Header() {
       <div className="flex items-center justify-between gap-4 px-4 py-4">
         {/* LEFT: Logo + Nav */}
         <div className="flex items-center gap-6">
-          <Link to="/">
+          <Link to="/" onClick={scrollToTopSmooth}>
             <img
               src="/Rovadologo.jpg"
               alt="Rovado logo"
@@ -243,6 +249,9 @@ export function Header() {
                 ) : (
                   <Link
                     to={item.to}
+                    onClick={() => {
+                      if (item.to === "/") scrollToTopSmooth();
+                    }}
                     className="flex items-center gap-1 text-black hover:text-green-600"
                   >
                     {item.label}
@@ -320,7 +329,7 @@ export function Header() {
           >
             <Heart size={18} />
             <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-green-600 text-[10px] text-white">
-              {count}
+              {wishlistCount}
             </span>
           </Link>
 
@@ -388,7 +397,13 @@ export function Header() {
                     )}
                   </>
                 ) : (
-                  <Link to={item.to} onClick={() => setOpen(false)}>
+                  <Link
+                    to={item.to}
+                    onClick={() => {
+                      setOpen(false);
+                      if (item.to === "/") scrollToTopSmooth();
+                    }}
+                  >
                     {item.label}
                   </Link>
                 )}
@@ -420,6 +435,20 @@ export function Header() {
 }
 
 export function PromoBar() {
+  const [search, setSearch] = useState("");
+  const navigate = useNavigate();
+
+  const handleSearch = (e) => {
+    e.preventDefault();
+    const q = search.trim();
+    if (q) {
+      navigate(`/category?search=${encodeURIComponent(q)}`);
+      setSearch("");
+    } else {
+      navigate("/category");
+    }
+  };
+
   const items = [
     { icon: Truck, text: "Free shipping over $199" },
     { icon: RotateCcw, text: "30 days money back" },
@@ -427,19 +456,24 @@ export function PromoBar() {
   ];
   return (
     <div className="flex flex-col gap-4 rounded-xl bg-green-600 p-4 text-white sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex w-full items-center overflow-hidden rounded-full bg-white sm:w-auto sm:min-w-[380px]">
+      <form
+        onSubmit={handleSearch}
+        className="flex w-full items-center overflow-hidden rounded-full bg-white sm:w-auto sm:min-w-[380px]"
+      >
         <span className="hidden shrink-0 items-center gap-1 px-4 py-3 text-xs font-bold text-neutral-800 sm:flex">
           All Categories <ChevronDown size={10} />
         </span>
         <input
           type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
           placeholder="Search anything..."
           className="w-full bg-white px-4 py-3 text-xs text-neutral-800 outline-none placeholder:text-neutral-400"
         />
-        <button className="px-4 text-black">
+        <button type="submit" aria-label="Search" className="px-4 text-black">
           <Search size={16} />
         </button>
-      </div>
+      </form>
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-xs font-medium uppercase">
         {items.map(({ icon: Icon, text }) => (
           <span key={text} className="flex items-center gap-2">
@@ -458,9 +492,9 @@ export function Breadcrumb({ items }) {
         <span key={i} className="flex items-center gap-2">
           {i > 0 && <span className="text-gray-500">/</span>}
           {item.href ? (
-            <a href={item.href} className="font-bold text-neutral-400">
+            <Link to={item.href} className="font-bold text-neutral-400">
               {item.label}
-            </a>
+            </Link>
           ) : (
             <span className="font-bold text-black">{item.label}</span>
           )}
@@ -506,6 +540,29 @@ const footerColumns = [
     items: ["Become Seller", "Affiliate", "Advertise", "Partnership"],
   },
 ];
+
+const getFooterLink = (item) => {
+  const lower = item.toLowerCase();
+  if (lower.includes("laptop") || lower.includes("pc")) return "/laptops";
+  if (lower.includes("phone") || lower.includes("tablet")) return "/cellphones";
+  if (lower.includes("about")) return "/about";
+  if (lower.includes("order") || lower.includes("account")) return "/profile";
+  if (lower.includes("cart")) return "/cart";
+  if (
+    lower.includes("contact") ||
+    lower.includes("service") ||
+    lower.includes("support") ||
+    lower.includes("policy") ||
+    lower.includes("terms") ||
+    lower.includes("faq") ||
+    lower.includes("career") ||
+    lower.includes("seller") ||
+    lower.includes("partner")
+  ) {
+    return "/contact";
+  }
+  return "/category";
+};
 
 export function Footer() {
   return (
@@ -582,7 +639,9 @@ export function Footer() {
               <ul className="space-y-2 text-sm capitalize text-stone-500">
                 {col.items.map((item) => (
                   <li key={item}>
-                    <a href="#">{item}</a>
+                    <Link to={getFooterLink(item)} className="hover:text-green-600">
+                      {item}
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -613,9 +672,9 @@ export function Footer() {
             </div>
             <p className="mt-2 text-xs text-stone-500">
               By subscribing, you&apos;re accepted our{" "}
-              <a href="#" className="text-black underline">
+              <Link to="/contact" className="text-black underline">
                 Policy
-              </a>
+              </Link>
             </p>
           </div>
         </div>
@@ -631,9 +690,9 @@ export function Footer() {
               </span>
             ))}
           </div>
-          <a href="#" className="flex items-center gap-1 text-sm text-blue-600">
+          <Link to="/category" className="flex items-center gap-1 text-sm text-blue-600">
             Mobile Site
-          </a>
+          </Link>
         </div>
       </div>
     </footer>

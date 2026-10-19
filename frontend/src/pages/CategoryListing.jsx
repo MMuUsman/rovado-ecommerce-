@@ -11,6 +11,7 @@ import {
 import { Header, PromoBar, Breadcrumb, PageShell } from "../components/Layout";
 import { ProductGridCard, StarRating } from "../components/Product";
 import { supabase } from "../services/supabaseClient";
+import { useLoading } from "../context/LoadingContext";
 
 const heroBanner = {
   image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=864&q=80",
@@ -421,17 +422,19 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
    Main Component
 --------------------------------------------------------- */
 export default function CategoryListing() {
-  const [searchParams] = useSearchParams();
-const urlCategory = searchParams.get("category") || "";
-const urlSearch = searchParams.get("search") || "";
-const urlBrand = searchParams.get("brand") || "";
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlCategory = searchParams.get("category") || "";
+  const urlSearch = searchParams.get("search") || "";
+  const urlBrand = searchParams.get("brand") || "";
+  const urlPage = parseInt(searchParams.get("page") || "1", 10) || 1;
 
-// ✅ Brand state
-const [brandFilter, setBrandFilter] = useState(urlBrand);
+  // ✅ Brand state
+  const [brandFilter, setBrandFilter] = useState(urlBrand);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const { startLoading, stopLoading } = useLoading();
 
   // ✅ Category filter from URL
   const [categoryFilter, setCategoryFilter] = useState(urlCategory);
@@ -453,20 +456,34 @@ const [brandFilter, setBrandFilter] = useState(urlBrand);
 
   // Sort + pagination
   const [sortBy, setSortBy] = useState("default");
-  const [currentPage, setCurrentPage] = useState(1);
+  const [currentPage, setCurrentPage] = useState(urlPage);
   const [itemsPerPage, setItemsPerPage] = useState(24);
 
   // ✅ Sync URL params with state
   useEffect(() => {
-  setCategoryFilter(urlCategory);
-  setSearchQuery(urlSearch);
-  setBrandFilter(urlBrand);      // ✅ Add
-  setCurrentPage(1);
-}, [urlCategory, urlSearch, urlBrand]);
+    setCategoryFilter(urlCategory);
+    setSearchQuery(urlSearch);
+    setBrandFilter(urlBrand);
+    setCurrentPage(urlPage);
+  }, [urlCategory, urlSearch, urlBrand, urlPage]);
+
+  const handlePageChange = (newPage) => {
+    const pageNum = Math.max(1, Math.min(newPage, totalPages));
+    setCurrentPage(pageNum);
+    const newParams = new URLSearchParams(searchParams);
+    if (pageNum === 1) {
+      newParams.delete("page");
+    } else {
+      newParams.set("page", String(pageNum));
+    }
+    setSearchParams(newParams);
+    window.scrollTo({ top: 350, behavior: "smooth" });
+  };
 
   // Fetch from Supabase
   useEffect(() => {
     (async () => {
+      startLoading("category_products");
       try {
         const { data, error } = await supabase
           .from("products")
@@ -495,9 +512,10 @@ const [brandFilter, setBrandFilter] = useState(urlBrand);
         console.warn("[category] fetch error:", err);
       } finally {
         setLoading(false);
+        stopLoading("category_products");
       }
     })();
-  }, []);
+  }, [startLoading, stopLoading]);
 
   // Toggle helpers
   const toggleBrand = useCallback((brand) => {
@@ -874,67 +892,82 @@ const otherProducts = filteredProducts.filter(
           )}
 
           {!loading && filteredProducts.length > 0 && (
-  <div className="space-y-12">
-    {/* ✅ CELLPHONES SECTION */}
-    {(categoryFilter === "" || categoryFilter === "cellphones-tablets") &&
-      cellphonesProducts.length > 0 && (
-        <div>
-          <div className="mb-4 flex items-center justify-between border-b border-stone-200 pb-3">
-            <h3 className="text-lg font-bold uppercase">
-              📱 Cell Phones &amp; Tablets
-            </h3>
-            <span className="text-xs text-stone-500">
-              {cellphonesProducts.length} products
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
-            {cellphonesProducts.map((p) => (
-              <ProductGridCard key={p.id} product={p} />
-            ))}
-          </div>
-        </div>
-      )}
+            categoryFilter || brandFilter || searchQuery.trim() || activeFiltersCount > 0 || currentPage > 1 ? (
+              <div>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+                  {paginatedProducts.map((p) => (
+                    <ProductGridCard key={p.id} product={p} />
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-12">
+                {/* ✅ CELLPHONES SECTION */}
+                {(categoryFilter === "" || categoryFilter === "cellphones-tablets") &&
+                  cellphonesProducts.length > 0 && (
+                    <div>
+                      <div className="mb-4 flex items-center justify-between border-b border-stone-200 pb-3">
+                        <h3 className="text-lg font-bold uppercase">
+                          📱 Cell Phones &amp; Tablets
+                        </h3>
+                        <span className="text-xs text-stone-500">
+                          {cellphonesProducts.length} products
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+                        {cellphonesProducts.map((p) => (
+                          <ProductGridCard key={p.id} product={p} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-    {/* ✅ LAPTOPS SECTION */}
-    {(categoryFilter === "" || categoryFilter === "laptops-computers") &&
-      laptopsProducts.length > 0 && (
-        <div>
-          <div className="mb-4 flex items-center justify-between border-b border-stone-200 pb-3">
-            <h3 className="text-lg font-bold uppercase">
-              💻 Laptops &amp; Computers
-            </h3>
-            <span className="text-xs text-stone-500">
-              {laptopsProducts.length} products
-            </span>
-          </div>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
-            {laptopsProducts.map((p) => (
-              <ProductGridCard key={p.id} product={p} />
-            ))}
-          </div>
-        </div>
-      )}
+                {/* ✅ LAPTOPS SECTION */}
+                {(categoryFilter === "" || categoryFilter === "laptops-computers") &&
+                  laptopsProducts.length > 0 && (
+                    <div>
+                      <div className="mb-4 flex items-center justify-between border-b border-stone-200 pb-3">
+                        <h3 className="text-lg font-bold uppercase">
+                          💻 Laptops &amp; Computers
+                        </h3>
+                        <span className="text-xs text-stone-500">
+                          {laptopsProducts.length} products
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+                        {laptopsProducts.map((p) => (
+                          <ProductGridCard key={p.id} product={p} />
+                        ))}
+                      </div>
+                    </div>
+                  )}
 
-    {/* ✅ OTHER PRODUCTS */}
-    {otherProducts.length > 0 && (
-      <div>
-        <div className="mb-4 flex items-center justify-between border-b border-stone-200 pb-3">
-          <h3 className="text-lg font-bold uppercase">📦 Other Products</h3>
-          <span className="text-xs text-stone-500">
-            {otherProducts.length} products
-          </span>
-        </div>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
-          {otherProducts.map((p) => (
-            <ProductGridCard key={p.id} product={p} />
-          ))}
-        </div>
-      </div>
-    )}
-  </div>
-)}
+                {/* ✅ OTHER PRODUCTS */}
+                {otherProducts.length > 0 && (
+                  <div>
+                    <div className="mb-4 flex items-center justify-between border-b border-stone-200 pb-3">
+                      <h3 className="text-lg font-bold uppercase">📦 Other Products</h3>
+                      <span className="text-xs text-stone-500">
+                        {otherProducts.length} products
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+                      {otherProducts.map((p) => (
+                        <ProductGridCard key={p.id} product={p} />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )
+          )}
 
-          {/* Pagination removed — sections ab alag hain */}
+          {/* Pagination */}
+          <Pagination
+            currentPage={currentPage}
+            totalPages={totalPages}
+            onPageChange={handlePageChange}
+          />
         </section>
       </div>
 

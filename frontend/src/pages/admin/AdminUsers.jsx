@@ -45,9 +45,36 @@ export default function AdminUsers() {
       alert("You can't delete yourself.");
       return;
     }
-    if (!confirm(`Delete user ${u.email}? Ye action undo nahi hoga.`)) return;
+    if (!confirm(`Delete user ${u.email}? This action cannot be undone.`)) return;
 
-    alert("Note: User ko delete karne ke liye service_role key wala backend API chahiye. Filhaal role change use karo.");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const token = session?.access_token;
+      const res = await fetch(`http://localhost:4000/api/admin/users/${u.id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token || ""}`,
+        },
+      });
+      if (res.ok) {
+        alert("User deleted successfully.");
+        load();
+      } else {
+        const { error: directErr } = await supabase.from("profiles").delete().eq("id", u.id);
+        if (directErr) {
+          alert("Delete failed: " + directErr.message);
+        } else {
+          load();
+        }
+      }
+    } catch {
+      const { error: directErr } = await supabase.from("profiles").delete().eq("id", u.id);
+      if (directErr) {
+        alert("Delete failed: " + directErr.message);
+      } else {
+        load();
+      }
+    }
   };
 
   const filtered = users.filter((u) => {

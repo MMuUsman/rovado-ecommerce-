@@ -59,11 +59,38 @@ function ProductFormModal({ initial, onClose, onSaved }) {
       ? supabase.from("products").update(payload).eq("id", initial.id)
       : supabase.from("products").insert(payload);
 
-    const { error: err } = await op;
+    let { error: err } = await op;
+
+    if (err) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        const url = initial?.id
+          ? `http://localhost:4000/api/admin/products/${initial.id}`
+          : "http://localhost:4000/api/admin/products";
+        const method = initial?.id ? "PUT" : "POST";
+
+        const res = await fetch(url, {
+          method,
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token || ""}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (res.ok) {
+          err = null;
+        }
+      } catch (e) {
+        console.warn("[admin-products] backend fallback error:", e);
+      }
+    }
+
     setSaving(false);
 
     if (err) {
-      setError(err.message);
+      setError(err.message || "Failed to save product.");
       return;
     }
     onSaved();
@@ -308,9 +335,27 @@ export default function AdminProducts() {
   }, []);
 
   const handleDelete = async (id, title) => {
-    if (!confirm(`Delete "${title}"? Ye action undo nahi hoga.`)) return;
+    if (!confirm(`Delete "${title}"? This action cannot be undone.`)) return;
 
-    const { error } = await supabase.from("products").delete().eq("id", id);
+    let { error } = await supabase.from("products").delete().eq("id", id);
+    if (error) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        const res = await fetch(`http://localhost:4000/api/admin/products/${id}`, {
+          method: "DELETE",
+          headers: {
+            Authorization: `Bearer ${token || ""}`,
+          },
+        });
+        if (res.ok) {
+          error = null;
+        }
+      } catch (e) {
+        console.warn("[admin-products] backend delete fallback error:", e);
+      }
+    }
+
     if (error) {
       alert("Delete failed: " + error.message);
       return;

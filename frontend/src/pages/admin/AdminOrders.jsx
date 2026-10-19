@@ -32,6 +32,21 @@ export default function AdminOrders() {
       console.log("[admin-orders] orders:", ordersData?.length, "error:", ordersErr?.message);
 
       if (ordersErr) {
+        try {
+          const { data: { session } } = await supabase.auth.getSession();
+          const token = session?.access_token;
+          const backendRes = await fetch("http://localhost:4000/api/admin/orders", {
+            headers: { Authorization: `Bearer ${token || ""}` }
+          });
+          if (backendRes.ok) {
+            const bOrders = await backendRes.json();
+            setOrders(bOrders ?? []);
+            setLoading(false);
+            return;
+          }
+        } catch (e) {
+          console.warn("[admin-orders] backend fallback error:", e);
+        }
         setError("Orders fetch failed: " + ordersErr.message);
         setOrders([]);
         setLoading(false);
@@ -115,6 +130,24 @@ export default function AdminOrders() {
       .eq("id", id);
 
     if (error) {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const token = session?.access_token;
+        const res = await fetch(`http://localhost:4000/api/admin/orders/${id}/status`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token || ""}`,
+          },
+          body: JSON.stringify({ status }),
+        });
+        if (res.ok) {
+          load();
+          return;
+        }
+      } catch (e) {
+        console.warn("[admin-orders] backend status update error:", e);
+      }
       alert("Update failed: " + error.message);
       return;
     }
@@ -172,10 +205,17 @@ export default function AdminOrders() {
             <div key={o.id} className="rounded-xl bg-white p-5">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
-                  <p className="font-bold">Order #{o.id}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-bold">Order #{o.id}</p>
+                    {o.payment_method === "stripe" && (
+                      <span className="rounded bg-purple-100 px-2 py-0.5 text-[10px] font-bold uppercase text-purple-800">
+                        Stripe Sandbox
+                      </span>
+                    )}
+                  </div>
                   <p className="text-xs text-stone-500">
                     {new Date(o.created_at).toLocaleString()} ·{" "}
-                    {o.profiles?.email || "Unknown"}
+                    {o.profiles?.email || o.billing?.email || "Customer"}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from "react";
+import { useLocation } from "react-router-dom";
 import { ChevronRight, Camera, Trash2 } from "lucide-react";
 import { Header, Breadcrumb, PageShell } from "../components/Layout";
 import { useAuth } from "../context/AuthContext";
@@ -48,7 +49,10 @@ function Avatar({ src, name, size = "lg" }) {
 --------------------------------------------------------- */
 export default function Profile() {
   const { user, profile, refreshProfile, signOut } = useAuth();
-  const [active, setActive] = useState("Account info");
+  const location = useLocation();
+  const [active, setActive] = useState(
+    location.state?.tab || (location.state?.orderSuccess ? "My order" : "Account info")
+  );
   const fileInputRef = useRef(null);
 
   // Form state
@@ -463,6 +467,11 @@ export default function Profile() {
             {/* MY ORDER */}
             {active === "My order" && (
               <div className="space-y-4">
+                {location.state?.orderSuccess && (
+                  <div className="rounded-xl border border-green-200 bg-green-50 p-4 text-xs font-medium text-green-800">
+                    ✓ Your order was placed successfully! Thank you for your purchase.
+                  </div>
+                )}
                 {ordersLoading && (
                   <p className="text-sm text-stone-500">Loading orders…</p>
                 )}
@@ -480,10 +489,22 @@ export default function Profile() {
                   >
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                       <div>
-                        <p className="text-sm font-bold">Order #{o.id}</p>
-                        <p className="text-xs text-stone-500">
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-bold">Order #{o.id}</p>
+                          {o.payment_method === "stripe" && (
+                            <span className="rounded bg-purple-100 px-2 py-0.5 text-[10px] font-bold uppercase text-purple-800">
+                              Stripe Sandbox {o.billing?.transaction?.card_last4 ? `(*${o.billing.transaction.card_last4})` : ""}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-stone-500 mt-0.5">
                           {new Date(o.created_at).toLocaleDateString()} ·{" "}
-                          {o.status}
+                          <span className="uppercase font-semibold">{o.status}</span>
+                          {o.billing?.transaction?.payment_intent_id && (
+                            <span className="ml-1 text-[11px] font-mono text-stone-400">
+                              · {o.billing.transaction.payment_intent_id.slice(0, 16)}…
+                            </span>
+                          )}
                         </p>
                       </div>
                       <p className="text-base font-bold text-green-600">

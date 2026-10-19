@@ -13,6 +13,7 @@ import { ProtectedRoute, AdminRoute } from "./components/ProtectedRoute";
 import Contact from "./pages/Contact";
 import About from "./pages/About";
 import ScrollToTop from "./components/ScrollToTop";
+import Chatbot from "./components/Chatbot";
 
 import AdminLayout from "./pages/admin/AdminLayout";
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -24,6 +25,7 @@ export default function App() {
   return (
     <>
       <ScrollToTop />
+      <Chatbot />
       <Routes>
         <Route path="/" element={<Home />} />
         <Route path="/category" element={<CategoryListing />} />

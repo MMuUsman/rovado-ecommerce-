@@ -19,10 +19,10 @@ export function ProtectedRoute({ children }) {
 }
 
 export function AdminRoute({ children }) {
-  const { user, isAdmin, loading } = useAuth();
+  const { user, isAdmin, loading, profile } = useAuth();
   const location = useLocation();
 
-  if (loading) {
+  if (loading || (user && profile === null)) {
     return (
       <div className="flex min-h-screen items-center justify-center text-sm text-stone-500">
         Loading…

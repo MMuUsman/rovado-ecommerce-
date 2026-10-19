@@ -1,0 +1,94 @@
+[
+  {
+    "order_id": "sandbox_ord_1792431807530",
+    "created_at": "2026-10-19T17:43:27.530Z",
+    "user_id": "00000000-0000-0000-0000-000000000000",
+    "customer_email": "alex.taylor@rovadotest.com",
+    "customer_name": "Alex Taylor",
+    "totals": {
+      "subtotal": 3898,
+      "shipping": 38.980000000000004,
+      "tax": 77.96000000000001,
+      "total": 4014.94
+    },
+    "items": [
+      {
+        "id": 1,
+        "title": "Apple MacBook Pro 16 M3 Max",
+        "price": 3499,
+        "qty": 1,
+        "image": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200"
+      },
+      {
+        "id": 4,
+        "title": "Sony WH-1000XM5 Wireless Headphones",
+        "price": 399,
+        "qty": 1,
+        "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200"
+      }
+    ],
+    "transaction": {
+      "transaction_id": "ch_test_efa249d9fc078ada7edef3ff",
+      "payment_intent_id": "pi_test_29297120c8ce4f6293914d11",
+      "gateway": "stripe_sandbox",
+      "payment_method": "stripe",
+      "card_brand": "Visa",
+      "card_last4": "4242",
+      "test_card": "4242 4242 4242 4242",
+      "amount": "4014.94",
+      "currency": "USD",
+      "status": "succeeded",
+      "paid_at": "2026-10-19T17:43:27.050Z",
+      "receipt_url": "https://pay.stripe.com/receipts/test/pi_test_29297120c8ce4f6293914d11",
+      "mock_mode": true
+    },
+    "supabase_persisted": false,
+    "supabase_error": "permission denied for table orders"
+  },
+  {
+    "order_id": "sandbox_ord_1791122640264",
+    "created_at": "2026-10-04T14:04:00.264Z",
+    "user_id": "00000000-0000-0000-0000-000000000000",
+    "customer_email": "alex.taylor@rovadotest.com",
+    "customer_name": "Alex Taylor",
+    "totals": {
+      "subtotal": 3898,
+      "shipping": 38.980000000000004,
+      "tax": 77.96000000000001,
+      "total": 4014.94
+    },
+    "items": [
+      {
+        "id": 1,
+        "title": "Apple MacBook Pro 16 M3 Max",
+        "price": 3499,
+        "qty": 1,
+        "image": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=200"
+      },
+      {
+        "id": 4,
+        "title": "Sony WH-1000XM5 Wireless Headphones",
+        "price": 399,
+        "qty": 1,
+        "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200"
+      }
+    ],
+    "transaction": {
+      "transaction_id": "ch_test_bcdb633ce6a4e3cd53167f9d",
+      "payment_intent_id": "pi_test_3ead4293dbbbd7911f4ea968",
+      "gateway": "stripe_sandbox",
+      "payment_method": "stripe",
+      "card_brand": "Visa",
+      "card_last4": "4242",
+      "test_card": "4242 4242 4242 4242",
+      "amount": "4014.94",
+      "currency": "USD",
+      "status": "succeeded",
+      "paid_at": "2026-10-04T14:03:59.433Z",
+      "receipt_url": "https://pay.stripe.com/receipts/test/pi_test_3ead4293dbbbd7911f4ea968",
+      "mock_mode": true
+    },
+    "supabase_persisted": false,
+    "supabase_error": "permission denied for table orders"
+  }
+]

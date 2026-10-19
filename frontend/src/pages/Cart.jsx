@@ -3,8 +3,12 @@ import { Link } from "react-router-dom";
 import { Header, Breadcrumb, PageShell } from "../components/Layout";
 import { StarRating } from "../components/Product";
 import { useCart } from "../context/CartContext";
+import { useWishlist } from "../context/WishlistContext";
 
 function CartRow({ item, onQty, onRemove }) {
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const isFav = isInWishlist(item.id);
+
   return (
     <div className="flex flex-col gap-4 rounded-xl bg-neutral-50 p-4 sm:flex-row sm:items-center">
       <div className="relative size-40 shrink-0 self-center overflow-hidden rounded-xl bg-white sm:size-56">
@@ -43,8 +47,15 @@ function CartRow({ item, onQty, onRemove }) {
             <span className="text-sm font-medium">{item.save}</span>
           </div>
         )}
-        <button className="grid size-9 place-items-center rounded-full bg-gray-200 text-neutral-400">
-          <Heart size={14} />
+        <button
+          type="button"
+          aria-label="Add to wishlist"
+          onClick={() => toggleWishlist(item)}
+          className={`grid size-9 place-items-center rounded-full bg-gray-200 transition ${
+            isFav ? "text-red-500" : "text-neutral-400 hover:text-red-500"
+          }`}
+        >
+          <Heart size={14} className={isFav ? "fill-red-500 text-red-500" : ""} />
         </button>
         <button
           onClick={() => onRemove(item.id)}

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Star, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { useWishlist } from "../context/WishlistContext";
 
 const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80";
@@ -39,6 +40,8 @@ export function ProductCard({ product }) {
   const { image, badge, title, rating, reviews, price, oldPrice, shipping, stock, isNew } = product;
   const [imgError, setImgError] = useState(false);
   const src = imgError || !image ? FALLBACK_IMG : image;
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const isWished = isInWishlist(product.id);
 
   return (
     <Link
@@ -59,14 +62,18 @@ export function ProductCard({ product }) {
           </div>
         )}
         <button
-          aria-label="Add to wishlist"
+          type="button"
+          aria-label={isWished ? "Remove from wishlist" : "Add to wishlist"}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            toggleWishlist(product);
           }}
-          className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/90 text-neutral-500 opacity-0 shadow-sm transition group-hover:opacity-100"
+          className={`absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/90 shadow-sm transition ${
+            isWished ? "text-red-500 opacity-100" : "text-neutral-500 opacity-0 group-hover:opacity-100"
+          }`}
         >
-          <Heart size={14} />
+          <Heart size={14} className={isWished ? "fill-red-500 text-red-500" : ""} />
         </button>
       </div>
 
@@ -93,6 +100,8 @@ export function ProductGridCard({ product }) {
   const { image, badge, title, rating, reviews, price, oldPrice, shipping, stock, isNew, save } = product;
   const [imgError, setImgError] = useState(false);
   const src = imgError || !image ? FALLBACK_IMG : image;
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const isWished = isInWishlist(product.id);
 
   return (
     <Link
@@ -120,14 +129,18 @@ export function ProductGridCard({ product }) {
           </div>
         )}
         <button
-          aria-label="Add to wishlist"
+          type="button"
+          aria-label={isWished ? "Remove from wishlist" : "Add to wishlist"}
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            toggleWishlist(product);
           }}
-          className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-gray-200 text-neutral-400 opacity-0 transition group-hover:opacity-100"
+          className={`absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/90 shadow-sm transition ${
+            isWished ? "text-red-500 opacity-100" : "text-neutral-500 opacity-0 group-hover:opacity-100"
+          }`}
         >
-          <Heart size={14} />
+          <Heart size={14} className={isWished ? "fill-red-500 text-red-500" : ""} />
         </button>
       </div>
 

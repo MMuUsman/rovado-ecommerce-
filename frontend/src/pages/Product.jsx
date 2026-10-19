@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Star, Heart, ChevronLeft, ChevronRight } from "lucide-react";
+import { useWishlist } from "../context/WishlistContext";
 
 export function StarRating({ count = 0, reviews }) {
   return (
@@ -53,6 +54,8 @@ export function ProductCard({ product }) {
   const FALLBACK =
     "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80";
   const src = imgError || !image ? FALLBACK : image;
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const isFav = isInWishlist(product.id);
 
   return (
     <Link
@@ -77,10 +80,15 @@ export function ProductCard({ product }) {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            toggleWishlist(product);
           }}
-          className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/90 text-neutral-500 opacity-0 shadow-sm transition group-hover:opacity-100"
+          className={`absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-white/90 shadow-sm transition ${
+            isFav
+              ? "text-red-500 opacity-100"
+              : "text-neutral-500 opacity-0 group-hover:opacity-100 hover:text-red-500"
+          }`}
         >
-          <Heart size={14} />
+          <Heart size={14} className={isFav ? "fill-red-500 text-red-500" : ""} />
         </button>
       </div>
 
@@ -137,6 +145,8 @@ export function ProductGridCard({ product }) {
   const FALLBACK =
     "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400&q=80";
   const src = imgError || !image ? FALLBACK : image;
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const isFav = isInWishlist(product.id);
 
   return (
     <Link
@@ -168,10 +178,15 @@ export function ProductGridCard({ product }) {
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
+            toggleWishlist(product);
           }}
-          className="absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-gray-200 text-neutral-400 opacity-0 transition group-hover:opacity-100"
+          className={`absolute right-2 top-2 flex size-8 items-center justify-center rounded-full bg-gray-200 transition ${
+            isFav
+              ? "text-red-500 opacity-100"
+              : "text-neutral-400 opacity-0 group-hover:opacity-100 hover:text-red-500"
+          }`}
         >
-          <Heart size={14} />
+          <Heart size={14} className={isFav ? "fill-red-500 text-red-500" : ""} />
         </button>
       </div>
 

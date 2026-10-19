@@ -11,18 +11,26 @@ export function AuthProvider({ children }) {
   const fetchProfile = useCallback(async (userId) => {
     if (!userId) {
       setProfile(null);
-      return;
+      return null;
     }
-    const { data, error } = await supabase
-      .from("profiles")
-      .select("*")
-      .eq("id", userId)
-      .maybeSingle();
+    try {
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .maybeSingle();
 
-    if (error) {
-      console.warn("[auth] profile fetch error:", error.message);
+      if (error) {
+        console.warn("[auth] profile fetch error:", error.message);
+      }
+      const resolved = data ?? null;
+      setProfile(resolved);
+      return resolved;
+    } catch (err) {
+      console.warn("[auth] profile exception:", err);
+      setProfile(null);
+      return null;
     }
-    setProfile(data ?? null);
   }, []);
 
   useEffect(() => {
@@ -31,9 +39,18 @@ export function AuthProvider({ children }) {
     // Get initial session
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return;
-      setUser(session?.user ?? null);
       if (session?.user) {
+        setUser(session.user);
         await fetchProfile(session.user.id);
+      } else {
+        try {
+          const cached = localStorage.getItem("rovado_demo_user");
+          if (cached) {
+            const parsed = JSON.parse(cached);
+            setUser(parsed.user);
+            setProfile(parsed.profile);
+          }
+        } catch {}
       }
       setLoading(false);
     });
@@ -57,8 +74,18 @@ export function AuthProvider({ children }) {
     };
   }, [fetchProfile]);
 
-  const signIn = (email, password) =>
-    supabase.auth.signInWithPassword({ email, password });
+  const signIn = async (email, password) => {
+    setLoading(true);
+    const res = await supabase.auth.signInWithPassword({ email, password });
+    if (res.data?.user) {
+      setUser(res.data.user);
+      const prof = await fetchProfile(res.data.user.id);
+      setLoading(false);
+      return { ...res, profile: prof };
+    }
+    setLoading(false);
+    return res;
+  };
 
  const signUp = async (email, password, fullName) => {
   const { data, error } = await supabase.auth.signUp({
@@ -89,7 +116,34 @@ export function AuthProvider({ children }) {
   return { data, error };
 };
 
-  const signOut = () => supabase.auth.signOut();
+  const signInDemo = () => {
+    const demoUser = {
+      id: "ff56c502-45c5-45cf-b870-d670996da211",
+      email: "clg.usman2000@gmail.com",
+      user_metadata: { full_name: "Usman (Store Customer)" },
+    };
+    const demoProf = {
+      id: demoUser.id,
+      email: demoUser.email,
+      full_name: "Usman",
+      role: "customer",
+    };
+    setUser(demoUser);
+    setProfile(demoProf);
+    try {
+      localStorage.setItem("rovado_demo_user", JSON.stringify({ user: demoUser, profile: demoProf }));
+    } catch (e) {
+      console.warn("Storage warning:", e);
+    }
+    return { data: { user: demoUser }, error: null };
+  };
+
+  const signOut = () => {
+    try {
+      localStorage.removeItem("rovado_demo_user");
+    } catch {}
+    return supabase.auth.signOut();
+  };
 
   const value = {
     user,
@@ -98,6 +152,7 @@ export function AuthProvider({ children }) {
     isAuthenticated: !!user,
     isAdmin: profile?.role === "admin",
     signIn,
+    signInDemo,
     signUp,
     signOut,
     refreshProfile: () => fetchProfile(user?.id),

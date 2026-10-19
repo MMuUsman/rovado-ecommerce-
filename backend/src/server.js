@@ -1,51 +1,51 @@
 import express from "express";
 import cors from "cors";
-import { createClient } from "@supabase/supabase-js";
-import "dotenv/config";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, "../.env") });
+
+import chatRoutes from "./routes/chatRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import dealsRoutes from "./routes/dealsRoutes.js";
+import paymentRoutes from "./routes/paymentRoutes.js";
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-const supabaseAdmin = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY
-);
-
-// Middleware: verify user JWT from frontend
-async function requireUser(req, res, next) {
-  const auth = req.headers.authorization || "";
-  const token = auth.replace("Bearer ", "");
-  if (!token) return res.status(401).json({ error: "Missing token" });
-  const { data, error } = await supabaseAdmin.auth.getUser(token);
-  if (error) return res.status(401).json({ error: error.message });
-  req.user = data.user;
-  next();
-}
-
-async function requireAdmin(req, res, next) {
-  const { data: profile } = await supabaseAdmin
-    .from("profiles").select("role").eq("id", req.user.id).maybeSingle();
-  if (profile?.role !== "admin") return res.status(403).json({ error: "Admin only" });
-  next();
-}
-
-// Example: admin-only product update
-app.post("/api/admin/products", requireUser, requireAdmin, async (req, res) => {
-  const { data, error } = await supabaseAdmin.from("products").insert(req.body).select();
-  if (error) return res.status(400).json({ error: error.message });
-  res.json(data);
+// Health check
+app.get("/api/health", (_req, res) => {
+  res.json({
+    status: "ok",
+    service: "Rovado E-Commerce Backend",
+    time: new Date().toISOString(),
+  });
 });
 
-// Example: list all orders (admin)
-app.get("/api/admin/orders", requireUser, requireAdmin, async (_req, res) => {
-  const { data, error } = await supabaseAdmin
-    .from("orders").select("*, order_items(*), profiles(email, full_name)")
-    .order("created_at", { ascending: false });
-  if (error) return res.status(400).json({ error: error.message });
-  res.json(data);
+// Mount Routes
+app.use("/api/chat", chatRoutes);
+app.use("/api/admin", adminRoutes);
+app.use("/api/deals", dealsRoutes);
+app.use("/api/payment", paymentRoutes);
+
+
+// Global Error Handler & Invalid JSON parser handling
+app.use((err, _req, res, _next) => {
+  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
+    return res.status(400).json({
+      error: "Invalid JSON payload received.",
+      tip: "In Windows PowerShell, format JSON with @{ message = '...' } | ConvertTo-Json or run: npm test",
+      details: err.message,
+    });
+  }
+  console.error("[server] Unhandled error:", err);
+  return res.status(500).json({ error: "Internal server error", message: err.message });
 });
 
-app.listen(process.env.PORT || 4000, () =>
-  console.log(`API on :${process.env.PORT || 4000}`)
-);
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => {
+  console.log(`🚀 Rovado Backend API listening on http://localhost:${PORT}`);
+});
