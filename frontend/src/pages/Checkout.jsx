@@ -236,7 +236,7 @@ export default function Checkout() {
         return;
       }
 
-      // --- 2. Traditional Payment Methods (Bank, COD, Paypal) ---
+      // --- 2. Alternative Payment Methods (Cash on Delivery) ---
       setLoadingMessage("Placing order…");
 
       const userId = user?.id || null;
@@ -758,40 +758,29 @@ export default function Checkout() {
                 )}
               </div>
 
-              {/* OTHER PAYMENT METHODS */}
-              {[
-                {
-                  key: "bank",
-                  title: "Direct Bank Transfer",
-                  desc: "Make your payment directly into our bank account. Your order will be confirmed once funds clear.",
-                },
-                { key: "cod", title: "Cash on Delivery", desc: "Pay with cash upon receipt of delivery." },
-                { key: "paypal", title: "Paypal", desc: "Fast and secure online payments via PayPal sandbox." },
-              ].map((opt) => (
-                <div
-                  key={opt.key}
-                  className={`rounded-xl border transition p-4 cursor-pointer ${
-                    payment === opt.key
-                      ? "border-green-600 bg-white shadow-sm ring-1 ring-green-600"
-                      : "border-stone-300 bg-stone-50 hover:bg-white"
-                  }`}
-                  onClick={() => setPayment(opt.key)}
-                >
-                  <label className="flex items-start gap-3 cursor-pointer">
-                    <input
-                      type="radio"
-                      name="payment"
-                      checked={payment === opt.key}
-                      onChange={() => setPayment(opt.key)}
-                      className="mt-1 size-4 accent-green-600 cursor-pointer"
-                    />
-                    <div>
-                      <p className="text-sm font-bold text-stone-900">{opt.title}</p>
-                      {opt.desc && <p className="mt-1 text-xs text-stone-500">{opt.desc}</p>}
-                    </div>
-                  </label>
-                </div>
-              ))}
+              {/* Cash on Delivery */}
+              <div
+                className={`rounded-xl border transition p-4 cursor-pointer ${
+                  payment === "cod"
+                    ? "border-green-600 bg-white shadow-sm ring-1 ring-green-600"
+                    : "border-stone-300 bg-stone-50 hover:bg-white"
+                }`}
+                onClick={() => setPayment("cod")}
+              >
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="payment"
+                    checked={payment === "cod"}
+                    onChange={() => setPayment("cod")}
+                    className="mt-1 size-4 accent-green-600 cursor-pointer"
+                  />
+                  <div>
+                    <p className="text-sm font-bold text-stone-900">Cash on Delivery</p>
+                    <p className="mt-1 text-xs text-stone-500">Pay with cash upon receipt of delivery.</p>
+                  </div>
+                </label>
+              </div>
 
               {/* Submit Button */}
               <button

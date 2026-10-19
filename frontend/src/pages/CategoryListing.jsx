@@ -620,14 +620,22 @@ if (categoryFilter && categoryFilter.toLowerCase() !== "all") {
   });
 }
 
-    // ✅ 2. SEARCH FILTER
+    // ✅ 2. SEARCH FILTER (Name, brand, category, specifications)
     if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
+      const q = searchQuery.toLowerCase().trim();
       list = list.filter(
         (p) =>
-          (p.title || "").toLowerCase().includes(q) ||
+          (p.title || p.name || "").toLowerCase().includes(q) ||
           (p.brand || "").toLowerCase().includes(q) ||
-          (p.category || "").toLowerCase().includes(q)
+          (p.category || "").toLowerCase().includes(q) ||
+          (p.processor || "").toLowerCase().includes(q) ||
+          (p.ram || "").toLowerCase().includes(q) ||
+          (p.storage || "").toLowerCase().includes(q) ||
+          (p.display || "").toLowerCase().includes(q) ||
+          (p.gpu || "").toLowerCase().includes(q) ||
+          (p.camera || "").toLowerCase().includes(q) ||
+          (p.operating_system || "").toLowerCase().includes(q) ||
+          (p.description || "").toLowerCase().includes(q)
       );
     }
 

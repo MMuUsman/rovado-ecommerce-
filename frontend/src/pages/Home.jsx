@@ -143,18 +143,22 @@ function ProductRail({ title, tabs, products, viewAllHref = "/category" }) {
 
     switch (active) {
       case "Best seller":
+        const best = products.filter((p) => p.is_best_seller);
+        if (best.length > 0) return best.slice(0, 8);
         return [...products]
           .sort((a, b) => (Number(b.reviews) || 0) - (Number(a.reviews) || 0))
           .slice(0, 8);
 
       case "New in":
-        const newItems = products.filter((p) => p.isNew || p.is_new);
+        const newItems = products.filter((p) => p.is_new || p.isNew);
         if (newItems.length > 0) return newItems.slice(0, 8);
         return [...products]
           .sort((a, b) => (Number(b.id) || 0) - (Number(a.id) || 0))
           .slice(0, 8);
 
       case "Popular":
+        const pop = products.filter((p) => p.is_popular);
+        if (pop.length > 0) return pop.slice(0, 8);
         return [...products]
           .sort((a, b) => (Number(b.rating) || 0) - (Number(a.rating) || 0))
           .slice(0, 8);
@@ -418,31 +422,36 @@ function Header() {
   const { count: wishlistCount } = useWishlist();
   const { user, profile, signOut } = useAuth();
 
+  const pagesList = [
+    { label: "About", to: "/about" },
+    { label: "Profile", to: "/profile" },
+    { label: "Cart", to: "/cart" },
+    { label: "Wishlist", to: "/wishlist" },
+    { label: "Checkout", to: "/checkout" },
+    { label: "Login", to: "/login" },
+    { label: "Register", to: "/register" },
+    { label: "Contact", to: "/contact" },
+  ];
+  if (profile?.role === "admin") {
+    pagesList.push({ label: "Admin Dashboard", to: "/admin" });
+  }
+
   const navItems = [
     { label: "Homes", to: "/", dropdown: null },
     {
       label: "Pages",
       to: "#",
-      dropdown: [
-        { label: "About", to: "/about" },
-        { label: "Profile", to: "/profile" },
-        { label: "Cart", to: "/cart" },
-        { label: "Checkout", to: "/checkout" },
-        { label: "Login", to: "/login" },
-        { label: "Register", to: "/register" },
-        { label: "Admin Dashboard", to: "/admin" },
-      ],
+      dropdown: pagesList,
     },
     {
       label: "Products",
       to: "#",
       dropdown: [
-        { label: "All Products", to: "/category" },
         { label: "Cellphones & Tablets", to: "/cellphones" },
         { label: "Laptops & Computers", to: "/laptops" },
-        { label: "Best Sellers", to: "/category" },
-        { label: "New Arrivals", to: "/category" },
-        { label: "Deals of the Day", to: "/category" },
+        { label: "Best Sellers", to: "/cellphones?sub=bestseller" },
+        { label: "New Arrivals", to: "/laptops?sub=new" },
+        { label: "Deals of the Day", to: "/cellphones?sub=deals" },
       ],
     },
     { label: "Contact", to: "/contact", dropdown: null },
@@ -540,7 +549,7 @@ function Header() {
 
         {/* Right icons — desktop */}
         <div className="hidden items-center gap-4 lg:flex">
-          <Link to="/category" aria-label="Search" className="grid size-10 place-items-center rounded-full bg-violet-100">
+          <Link to="/search" aria-label="Search" className="grid size-10 place-items-center rounded-full bg-violet-100 transition hover:bg-violet-200">
             <Search size={18} />
           </Link>
 
@@ -568,11 +577,13 @@ function Header() {
             </>
           )}
 
-          <Link to="/cart" aria-label="Wishlist" className="relative grid size-10 place-items-center rounded-full bg-violet-100">
+          <Link to="/wishlist" aria-label="Wishlist" className="relative grid size-10 place-items-center rounded-full bg-violet-100 transition hover:bg-violet-200">
             <Heart size={18} />
-            <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-green-600 text-[10px] text-white">
-              {wishlistCount}
-            </span>
+            {wishlistCount > 0 && (
+              <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-green-600 text-[10px] text-white">
+                {wishlistCount}
+              </span>
+            )}
           </Link>
 
           <div className="text-xs">
@@ -580,15 +591,29 @@ function Header() {
             <Link to="/cart" className="font-bold uppercase">${cartTotal}</Link>
           </div>
 
-          <Link to="/cart">
-            <ShoppingCart size={20} />
+          <Link to="/cart" className="relative grid size-10 place-items-center rounded-full bg-violet-100 transition hover:bg-violet-200">
+            <ShoppingCart size={18} />
+            {count > 0 && (
+              <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-green-600 text-[10px] font-bold text-white">
+                {count}
+              </span>
+            )}
           </Link>
         </div>
 
         {/* Mobile icons — NEW */}
         <div className="flex items-center gap-2 lg:hidden">
-          <Link to="/category" className="grid size-9 place-items-center rounded-full bg-violet-100">
+          <Link to="/search" className="grid size-9 place-items-center rounded-full bg-violet-100">
             <Search size={16} />
+          </Link>
+
+          <Link to="/wishlist" className="relative grid size-9 place-items-center rounded-full bg-violet-100">
+            <Heart size={16} />
+            {wishlistCount > 0 && (
+              <span className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-full bg-green-600 text-[9px] text-white">
+                {wishlistCount}
+              </span>
+            )}
           </Link>
 
           <Link to="/cart" className="relative grid size-9 place-items-center rounded-full bg-violet-100">
@@ -718,10 +743,10 @@ function PromoBar() {
     e.preventDefault();
     const q = search.trim();
     if (q) {
-      navigate(`/category?search=${encodeURIComponent(q)}`);
+      navigate(`/search?search=${encodeURIComponent(q)}`);
       setSearch("");
     } else {
-      navigate("/category");
+      navigate("/search");
     }
   };
 
@@ -768,19 +793,12 @@ function PromoBar() {
 ========================================================= */
 
 function Sidebar() {
-  const categoryMap = {
-    "Laptops": "laptops-computers",
-    "PC & Computers": "laptops-computers",
-    "Cell Phones": "cellphones-tablets",
-    "Tablets": "cellphones-tablets",
-    "Gaming & VR": "gaming",
-    "Networking": "networking",
-    "Cameras": "cameras",
-    "Sounds": "sounds",
-    "Office": "office",
-    "Storage, USB": "storage",
-    "Accessories": "accessories",
-    "Clearance": "clearance",
+  const getCategoryLink = (catName) => {
+    const lower = (catName || "").toLowerCase();
+    if (lower.includes("laptop") || lower.includes("pc") || lower.includes("gaming") || lower.includes("office") || lower.includes("storage")) {
+      return "/laptops";
+    }
+    return "/cellphones";
   };
 
   return (
@@ -793,7 +811,7 @@ function Sidebar() {
         {sidebarCategories.map((cat) => (
           <li key={cat.name}>
             <Link
-              to={`/category?category=${categoryMap[cat.name] || "all"}`}
+              to={getCategoryLink(cat.name)}
               className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-neutral-50"
             >
               <span className="flex items-center gap-2">
@@ -810,19 +828,12 @@ function Sidebar() {
 }
 
 function MobileCategoryScroller() {
-  const categoryMap = {
-    "Laptops": "laptops-computers",
-    "PC & Computers": "laptops-computers",
-    "Cell Phones": "cellphones-tablets",
-    "Tablets": "cellphones-tablets",
-    "Gaming & VR": "gaming",
-    "Networking": "networking",
-    "Cameras": "cameras",
-    "Sounds": "sounds",
-    "Office": "office",
-    "Storage, USB": "storage",
-    "Accessories": "accessories",
-    "Clearance": "clearance",
+  const getCategoryLink = (catName) => {
+    const lower = (catName || "").toLowerCase();
+    if (lower.includes("laptop") || lower.includes("pc") || lower.includes("gaming") || lower.includes("office") || lower.includes("storage")) {
+      return "/laptops";
+    }
+    return "/cellphones";
   };
 
   return (
@@ -830,7 +841,7 @@ function MobileCategoryScroller() {
       {sidebarCategories.map((cat) => (
         <Link
           key={cat.name}
-          to={`/category?category=${categoryMap[cat.name] || "all"}`}
+          to={getCategoryLink(cat.name)}
           className="shrink-0 rounded-full bg-neutral-100 px-3.5 py-2 text-xs font-medium capitalize whitespace-nowrap"
         >
           {cat.icon} {cat.name}
@@ -1003,27 +1014,27 @@ function FeaturedBrandsAndTopCategories() {
   ];
 
   const categories = [
-  {
-    name: "Laptops",
-    href: "/laptops",
-    image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=200&q=80",
-  },
-  {
-    name: "PC Gaming",
-    href: "/category?category=gaming",
-    image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=200&q=80",
-  },
-  {
-    name: "Headphones",
-    href: "/category?category=sounds",
-    image: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=200&q=80",
-  },
-  {
-    name: "Monitors",
-    href: "/category?category=monitors",
-    image: "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=200&q=80",
-  },
-];
+    {
+      name: "Laptops",
+      href: "/laptops",
+      image: "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=200&q=80",
+    },
+    {
+      name: "PC Gaming",
+      href: "/laptops?search=gaming",
+      image: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=200&q=80",
+    },
+    {
+      name: "Cellphones",
+      href: "/cellphones",
+      image: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200&q=80",
+    },
+    {
+      name: "Smartphones",
+      href: "/cellphones",
+      image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=200&q=80",
+    },
+  ];
 
   return (
     <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
@@ -1031,7 +1042,7 @@ function FeaturedBrandsAndTopCategories() {
       <div className="rounded-xl bg-white p-3 sm:p-6">
         <div className="mb-4 sm:mb-6 flex items-center justify-between">
           <h2 className="text-base sm:text-lg font-bold uppercase">Featured Brands</h2>
-          <Link to="/category" className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600">
+          <Link to="/cellphones" className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600">
             View All <ChevronRight size={12} />
           </Link>
         </div>
@@ -1041,7 +1052,7 @@ function FeaturedBrandsAndTopCategories() {
           {brands.map((b) => (
             <Link
               key={b.name}
-              to={`/category?brand=${encodeURIComponent(b.name)}`}
+              to={`/search?brand=${encodeURIComponent(b.name)}`}
               title={b.name}
               className="group flex h-14 sm:h-16 items-center justify-center rounded-lg bg-neutral-50 p-1.5 sm:p-2 transition hover:bg-green-50 hover:shadow-sm"
             >
@@ -1066,7 +1077,7 @@ function FeaturedBrandsAndTopCategories() {
       <div className="rounded-xl bg-white p-3 sm:p-6">
         <div className="mb-4 sm:mb-6 flex items-center justify-between">
           <h2 className="text-base sm:text-lg font-bold uppercase">Top Categories</h2>
-          <Link to="/category" className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600">
+          <Link to="/laptops" className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600">
             View All <ChevronRight size={12} />
           </Link>
         </div>
@@ -1102,7 +1113,9 @@ function FeaturedBrandsAndTopCategories() {
 ========================================================= */
 
 function DealsOfTheDay({ products = [] }) {
-  const deal = products[0];
+  const [dealIndex, setDealIndex] = useState(0);
+  const dealList = Array.isArray(products) && products.length > 0 ? products : [];
+  const deal = dealList.length > 0 ? dealList[dealIndex % dealList.length] : null;
 
   const [timeLeft, setTimeLeft] = useState({ d: "02", h: "14", m: "25", s: "40" });
 
@@ -1134,7 +1147,7 @@ function DealsOfTheDay({ products = [] }) {
   ];
 
   const numPrice = parseFloat(String(deal.price || "").replace(/[^0-9.]/g, ""));
-  const numOld = parseFloat(String(deal.oldPrice || "").replace(/[^0-9.]/g, ""));
+  const numOld = parseFloat(String(deal.old_price || deal.oldPrice || "").replace(/[^0-9.]/g, ""));
   const savings = (numOld && numPrice && numOld > numPrice)
     ? `$${(numOld - numPrice).toFixed(2)}`
     : (deal.save || "$199.00");
@@ -1150,17 +1163,42 @@ function DealsOfTheDay({ products = [] }) {
           <h2 className="text-base sm:text-lg font-bold uppercase text-white">
             Deals of the day
           </h2>
-          <Link to="/category" className="flex items-center gap-1 text-xs text-white hover:underline">
-            View All <ChevronRight size={12} />
-          </Link>
+          <div className="flex items-center gap-3">
+            <Link to="/cellphones" className="flex items-center gap-1 text-xs text-white hover:underline">
+              View All <ChevronRight size={12} />
+            </Link>
+            {dealList.length > 1 && (
+              <div className="flex items-center gap-1 text-white">
+                <button
+                  type="button"
+                  onClick={() => setDealIndex((i) => (i - 1 + dealList.length) % dealList.length)}
+                  className="grid size-6 place-items-center rounded bg-green-700/80 hover:bg-green-800 transition"
+                  title="Previous Deal"
+                >
+                  <ChevronLeft size={12} />
+                </button>
+                <span className="text-[11px] font-mono px-1">
+                  {(dealIndex % dealList.length) + 1}/{dealList.length}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setDealIndex((i) => (i + 1) % dealList.length)}
+                  className="grid size-6 place-items-center rounded bg-green-700/80 hover:bg-green-800 transition"
+                  title="Next Deal"
+                >
+                  <ChevronRight size={12} />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
       <div className="grid grid-cols-1 gap-4 sm:gap-6 rounded-b-xl bg-white p-3 sm:p-6 lg:grid-cols-2">
         <Link to={`/product/${deal.id}`} className="relative block">
           <img
             src={deal.image || FALLBACK_IMG}
-            alt={deal.title}
-            className="w-full rounded-xl object-cover"
+            alt={deal.title || deal.name}
+            className="w-full rounded-xl object-cover max-h-96"
             onError={(e) => { e.target.src = FALLBACK_IMG; }}
           />
           <div className="absolute left-3 sm:left-4 top-3 sm:top-4 rounded-lg bg-green-600 px-2.5 sm:px-3 py-1.5 sm:py-2 text-white">
@@ -1170,12 +1208,16 @@ function DealsOfTheDay({ products = [] }) {
         </Link>
         <div>
           <StarRating count={deal.rating ?? 5} reviews={deal.reviews ?? 12} />
-          <h3 className="mt-2 text-sm sm:text-base font-bold line-clamp-2">{deal.title}</h3>
+          <Link to={`/product/${deal.id}`}>
+            <h3 className="mt-2 text-sm sm:text-base font-bold line-clamp-2 hover:text-green-600 transition">
+              {deal.title || deal.name}
+            </h3>
+          </Link>
           <div className="mt-2 flex items-baseline gap-2">
             <span className="text-lg sm:text-xl font-semibold text-red-600">{deal.price}</span>
-            {deal.oldPrice && (
+            {(deal.old_price != null || deal.oldPrice != null) && (
               <span className="text-sm sm:text-base font-semibold text-stone-500 line-through">
-                {deal.oldPrice}
+                {deal.oldPrice || `$${Number(deal.old_price).toFixed(2)}`}
               </span>
             )}
           </div>
@@ -1478,17 +1520,19 @@ function SmartCategorySection({ title, keywords, products = [] }) {
   }
 
   const bannerImage = matchedProducts[0]?.image || FALLBACK_IMG;
+  const isLaptopSection = keywords.some((k) => /laptop|pc|gaming|office|computer/i.test(k));
+  const categoryHref = isLaptopSection ? "/laptops" : "/cellphones";
 
   return (
     <section className="rounded-xl bg-white p-3 sm:p-6">
       <div className="mb-3 sm:mb-4 flex items-center justify-between">
         <h2 className="text-sm sm:text-lg font-bold uppercase line-clamp-1">{title}</h2>
-        <Link to="/category" className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600 whitespace-nowrap">
+        <Link to={categoryHref} className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600 whitespace-nowrap">
           View All <ChevronRight size={12} />
         </Link>
       </div>
 
-      <Link to="/category" className="mb-3 sm:mb-6 block overflow-hidden rounded-xl">
+      <Link to={categoryHref} className="mb-3 sm:mb-6 block overflow-hidden rounded-xl">
         <img
           src={bannerImage}
           alt={title}
@@ -1501,7 +1545,7 @@ function SmartCategorySection({ title, keywords, products = [] }) {
         {categories.map((c) => (
           <Link
             key={c.name}
-            to="/category"
+            to={`${categoryHref}?search=${encodeURIComponent(c.name)}`}
             className="flex flex-col items-center gap-1.5 sm:gap-2 text-center transition hover:opacity-80"
           >
             <div className="size-14 sm:size-20 lg:size-28 overflow-hidden rounded-full bg-neutral-100">
@@ -1530,7 +1574,7 @@ function SmartCategorySection({ title, keywords, products = [] }) {
 function TwoBanners() {
   return (
     <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
-      <Link to="/category" className="relative block overflow-hidden rounded-xl">
+      <Link to="/cellphones" className="relative block overflow-hidden rounded-xl">
         <img
           src="https://images.unsplash.com/photo-1554224155-1696413565d3?w=646&q=80"
           alt="Cashback"
@@ -1581,7 +1625,7 @@ function RecentlyViewed({ products = [] }) {
     <section className="rounded-xl bg-white p-3 sm:p-6">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base sm:text-lg font-bold uppercase">Your recently viewed</h2>
-        <Link to="/category" className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600">
+        <Link to="/cellphones" className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600">
           View All <ChevronRight size={12} />
         </Link>
       </div>
@@ -1816,9 +1860,10 @@ export default function Home() {
     })();
   }, [startLoading, stopLoading]);
 
-  const bestSellersData = allProducts.filter((p) => p.category === "best-seller");
-  const cellphonesData = allProducts.filter((p) => p.category === "cellphones-tablets");
-  const laptopsData = allProducts.filter((p) => p.category === "laptops-computers");
+  const cellphonesData = allProducts.filter((p) => (p.category || "").includes("cellphone") || (p.category || "").includes("tablet"));
+  const laptopsData = allProducts.filter((p) => (p.category || "").includes("laptop") || (p.category || "").includes("computer"));
+  const dealsProducts = allProducts.filter((p) => p.is_deal || p.sale_price != null || p.old_price != null);
+  const bestSellersData = allProducts.filter((p) => p.is_best_seller);
 
   const getRecentlyViewed = () => {
     try {
@@ -1833,8 +1878,8 @@ export default function Home() {
     } catch (e) {
       console.warn("Recently viewed read error:", e);
     }
-    const dbRecent = allProducts.filter((p) => p.category === "recently-viewed");
-    if (dbRecent.length > 0) return dbRecent;
+    const dbRecent = allProducts.filter((p) => p.is_new);
+    if (dbRecent.length > 0) return dbRecent.slice(0, 4);
     return allProducts.slice(0, 4);
   };
 
@@ -1854,14 +1899,14 @@ export default function Home() {
         </div>
 
         <FeaturedBrandsAndTopCategories />
-        <DealsOfTheDay products={dealsData.length > 0 ? dealsData : (bestSellersData.length > 0 ? bestSellersData : allProducts)} />
+        <DealsOfTheDay products={dealsProducts.length > 0 ? dealsProducts : allProducts} />
         <MemberBanner />
 
         <ProductRail
           title=""
           tabs={["Best seller", "New in", "Popular"]}
-          products={bestSellersData.length > 0 ? bestSellersData : allProducts.slice(0, 8)}
-          viewAllHref="/category"
+          products={allProducts}
+          viewAllHref="/cellphones"
         />
 
         <BrandNewForYou products={allProducts} />

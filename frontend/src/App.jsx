@@ -1,12 +1,13 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
 import CategoryListing from "./pages/CategoryListing";
-import ProductDetail from "./pages/ProductDetail"; // ✅ Ye zaroori
+import ProductDetail from "./pages/ProductDetail";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Profile from "./pages/Profile";
+import WishlistPage from "./pages/WishlistPage";
 import CellphonesPage from "./pages/CellphonesPage";
 import LaptopsPage from "./pages/LaptopsPage";
 import { ProtectedRoute, AdminRoute } from "./components/ProtectedRoute";
@@ -28,12 +29,14 @@ export default function App() {
       <Chatbot />
       <Routes>
         <Route path="/" element={<Home />} />
-        <Route path="/category" element={<CategoryListing />} />
+        {/* Remove All Products: redirect /category to /cellphones */}
+        <Route path="/category" element={<Navigate to="/cellphones" replace />} />
+        <Route path="/search" element={<CategoryListing />} />
         <Route path="/cellphones" element={<CellphonesPage />} />
         <Route path="/laptops" element={<LaptopsPage />} />
-        <Route path="/product/:id" element={<ProductDetail />} />{" "}
-        {/* ✅ Route */}
+        <Route path="/product/:id" element={<ProductDetail />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="/wishlist" element={<WishlistPage />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/contact" element={<Contact />} />
@@ -67,7 +70,7 @@ export default function App() {
           <Route path="orders" element={<AdminOrders />} />
           <Route path="users" element={<AdminUsers />} />
         </Route>
-        <Route path="*" element={<Home />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </>
   );

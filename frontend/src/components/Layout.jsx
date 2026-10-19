@@ -154,32 +154,36 @@ export function Header() {
   const { count: wishlistCount } = useWishlist();
   const { user, profile, signOut } = useAuth();
 
+  const pagesList = [
+    { label: "About", to: "/about" },
+    { label: "Profile", to: "/profile" },
+    { label: "Cart", to: "/cart" },
+    { label: "Wishlist", to: "/wishlist" },
+    { label: "Checkout", to: "/checkout" },
+    { label: "Login", to: "/login" },
+    { label: "Register", to: "/register" },
+    { label: "Contact", to: "/contact" },
+  ];
+  if (profile?.role === "admin") {
+    pagesList.push({ label: "Admin Dashboard", to: "/admin" });
+  }
+
   const navItems = [
     { label: "Homes", to: "/", dropdown: null },
     {
       label: "Pages",
       to: "#",
-      dropdown: [
-        { label: "About", to: "/about" },  
-        { label: "Profile", to: "/profile" },
-        { label: "Cart", to: "/cart" },
-        { label: "Checkout", to: "/checkout" },
-        { label: "Login", to: "/login" },
-        { label: "Register", to: "/register" },
-        { label: "Admin Dashboard", to: "/admin" },
-        { label: "Contact", to: "/contact" },
-      ],
+      dropdown: pagesList,
     },
     {
       label: "Products",
       to: "#",
       dropdown: [
-        { label: "All Products", to: "/category" },
         { label: "Cellphones & Tablets", to: "/cellphones" },
         { label: "Laptops & Computers", to: "/laptops" },
-        { label: "Best Sellers", to: "/category" },
-        { label: "New Arrivals", to: "/category" },
-        { label: "Deals of the Day", to: "/category" },
+        { label: "Best Sellers", to: "/cellphones?sub=bestseller" },
+        { label: "New Arrivals", to: "/laptops?sub=new" },
+        { label: "Deals of the Day", to: "/cellphones?sub=deals" },
       ],
     },
     { label: "Contact", to: "/contact", dropdown: null },
@@ -280,9 +284,9 @@ export function Header() {
         {/* RIGHT: Icons */}
         <div className="hidden items-center gap-4 lg:flex">
           <Link
-            to="/category"
+            to="/search"
             aria-label="Search"
-            className="grid size-10 place-items-center rounded-full bg-violet-100"
+            className="grid size-10 place-items-center rounded-full bg-violet-100 transition hover:bg-violet-200"
           >
             <Search size={18} />
           </Link>
@@ -323,14 +327,16 @@ export function Header() {
           )}
 
           <Link
-            to="/cart"
+            to="/wishlist"
             aria-label="Wishlist"
-            className="relative grid size-10 place-items-center rounded-full bg-violet-100"
+            className="relative grid size-10 place-items-center rounded-full bg-violet-100 transition hover:bg-violet-200"
           >
             <Heart size={18} />
-            <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-green-600 text-[10px] text-white">
-              {wishlistCount}
-            </span>
+            {wishlistCount > 0 && (
+              <span className="absolute -right-1 -top-1 grid size-5 place-items-center rounded-full bg-green-600 text-[10px] text-white">
+                {wishlistCount}
+              </span>
+            )}
           </Link>
 
           <div className="text-xs">
@@ -451,10 +457,10 @@ export function PromoBar() {
     e.preventDefault();
     const q = search.trim();
     if (q) {
-      navigate(`/category?search=${encodeURIComponent(q)}`);
+      navigate(`/search?search=${encodeURIComponent(q)}`);
       setSearch("");
     } else {
-      navigate("/category");
+      navigate("/search");
     }
   };
 
@@ -570,7 +576,7 @@ const getFooterLink = (item) => {
   ) {
     return "/contact";
   }
-  return "/category";
+  return "/cellphones";
 };
 
 export function Footer() {
@@ -699,7 +705,7 @@ export function Footer() {
               </span>
             ))}
           </div>
-          <Link to="/category" className="flex items-center gap-1 text-sm text-blue-600">
+          <Link to="/" className="flex items-center gap-1 text-sm text-blue-600">
             Mobile Site
           </Link>
         </div>

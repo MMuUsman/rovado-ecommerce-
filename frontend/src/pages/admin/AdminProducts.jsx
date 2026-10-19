@@ -3,27 +3,41 @@ import { Plus, Pencil, Trash2, X } from "lucide-react";
 import { supabase } from "../../services/supabaseClient";
 
 const CATEGORIES = [
-  "best-seller",
   "cellphones-tablets",
   "laptops-computers",
-  "recently-viewed",
 ];
 
 const emptyForm = {
   title: "",
+  name: "",
+  slug: "",
   description: "",
+  short_description: "",
   image: "",
   price: "",
   old_price: "",
+  sale_price: "",
   badge: "",
   is_new: false,
+  is_best_seller: false,
+  is_popular: false,
+  is_deal: false,
+  is_featured: false,
   rating: "",
   reviews: "",
   shipping: "Free shipping",
+  stock_quantity: 25,
   stock: "in",
   category: "cellphones-tablets",
   brand: "",
   sku: "",
+  processor: "",
+  ram: "",
+  storage: "",
+  display: "",
+  operating_system: "",
+  gpu: "",
+  camera: "",
   is_active: true,
 };
 
@@ -42,17 +56,33 @@ function ProductFormModal({ initial, onClose, onSaved }) {
     setError("");
     setSaving(true);
 
+    const resolvedName = form.title || form.name || "Product";
+    const resolvedSlug = form.slug || resolvedName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
     const payload = {
       ...form,
+      title: resolvedName,
+      name: resolvedName,
+      slug: resolvedSlug,
       price: form.price === "" ? 0 : Number(form.price),
       old_price: form.old_price === "" ? null : Number(form.old_price),
+      sale_price: form.sale_price === "" ? null : Number(form.sale_price),
+      stock_quantity: form.stock_quantity === "" ? 0 : Number(form.stock_quantity),
       rating: form.rating === "" ? null : Number(form.rating),
       reviews: form.reviews === "" ? null : Number(form.reviews),
       badge: form.badge || null,
       description: form.description || null,
+      short_description: form.short_description || null,
       sku: form.sku || null,
       brand: form.brand || null,
       image: form.image || null,
+      processor: form.processor || null,
+      ram: form.ram || null,
+      storage: form.storage || null,
+      display: form.display || null,
+      operating_system: form.operating_system || null,
+      gpu: form.gpu || null,
+      camera: form.camera || null,
     };
 
     const op = initial?.id
@@ -173,6 +203,19 @@ function ProductFormModal({ initial, onClose, onSaved }) {
             </div>
 
             <div>
+              <label className="mb-1 block text-sm font-medium">Sale Price</label>
+              <input
+                type="number"
+                step="0.01"
+                name="sale_price"
+                value={form.sale_price}
+                onChange={handleChange}
+                placeholder="Optional discounted price"
+                className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
               <label className="mb-1 block text-sm font-medium">Category *</label>
               <select
                 name="category"
@@ -180,9 +223,8 @@ function ProductFormModal({ initial, onClose, onSaved }) {
                 onChange={handleChange}
                 className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
               >
-                {CATEGORIES.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
+                <option value="cellphones-tablets">Cellphones &amp; Tablets</option>
+                <option value="laptops-computers">Laptops &amp; Computers</option>
               </select>
             </div>
 
@@ -192,12 +234,24 @@ function ProductFormModal({ initial, onClose, onSaved }) {
                 name="brand"
                 value={form.brand}
                 onChange={handleChange}
+                placeholder="Apple, Samsung, Dell, Asus..."
                 className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium">Stock</label>
+              <label className="mb-1 block text-sm font-medium">Stock Quantity</label>
+              <input
+                type="number"
+                name="stock_quantity"
+                value={form.stock_quantity}
+                onChange={handleChange}
+                className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium">Stock Status</label>
               <select
                 name="stock"
                 value={form.stock}
@@ -211,48 +265,81 @@ function ProductFormModal({ initial, onClose, onSaved }) {
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium">Badge</label>
+              <label className="mb-1 block text-sm font-medium">Processor / Chip</label>
               <input
-                name="badge"
-                value={form.badge}
+                name="processor"
+                value={form.processor}
                 onChange={handleChange}
-                placeholder="New / Hot / Sale"
+                placeholder="e.g. Apple M4 Pro / Snapdragon 8 Elite"
                 className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium">Rating</label>
+              <label className="mb-1 block text-sm font-medium">RAM</label>
               <input
-                type="number"
-                min="0"
-                max="5"
-                name="rating"
-                value={form.rating}
+                name="ram"
+                value={form.ram}
                 onChange={handleChange}
+                placeholder="e.g. 16GB Unified / 24GB LPDDR5X"
                 className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium">Reviews Count</label>
+              <label className="mb-1 block text-sm font-medium">Storage</label>
               <input
-                type="number"
-                name="reviews"
-                value={form.reviews}
+                name="storage"
+                value={form.storage}
                 onChange={handleChange}
+                placeholder="e.g. 512GB PCIe 4.0 SSD"
                 className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
               />
             </div>
 
             <div>
-              <label className="mb-1 block text-sm font-medium">Shipping</label>
+              <label className="mb-1 block text-sm font-medium">Display</label>
               <input
-                name="shipping"
-                value={form.shipping}
+                name="display"
+                value={form.display}
                 onChange={handleChange}
+                placeholder="e.g. 16.2-inch Liquid Retina XDR / 6.8-inch AMOLED"
                 className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
               />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium">Operating System</label>
+              <input
+                name="operating_system"
+                value={form.operating_system}
+                onChange={handleChange}
+                placeholder="e.g. macOS Sequoia / Android 15 / Windows 11 Pro"
+                className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium">
+                {form.category?.includes("laptop") ? "Graphics (GPU)" : "Camera Specifications"}
+              </label>
+              {form.category?.includes("laptop") ? (
+                <input
+                  name="gpu"
+                  value={form.gpu}
+                  onChange={handleChange}
+                  placeholder="e.g. NVIDIA GeForce RTX 4080 12GB"
+                  className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
+                />
+              ) : (
+                <input
+                  name="camera"
+                  value={form.camera}
+                  onChange={handleChange}
+                  placeholder="e.g. 48MP Main + 48MP Ultra-Wide + 12MP 5x Telephoto"
+                  className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm"
+                />
+              )}
             </div>
 
             <div>
@@ -266,8 +353,18 @@ function ProductFormModal({ initial, onClose, onSaved }) {
             </div>
           </div>
 
-          <div className="flex items-center gap-6 border-t pt-4">
-            <label className="flex items-center gap-2 text-sm">
+          <div className="flex flex-wrap items-center gap-4 sm:gap-6 border-t pt-4">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                name="is_best_seller"
+                checked={form.is_best_seller}
+                onChange={handleChange}
+                className="size-4 accent-green-600"
+              />
+              Best Seller
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input
                 type="checkbox"
                 name="is_new"
@@ -277,7 +374,37 @@ function ProductFormModal({ initial, onClose, onSaved }) {
               />
               New Arrival
             </label>
-            <label className="flex items-center gap-2 text-sm">
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                name="is_popular"
+                checked={form.is_popular}
+                onChange={handleChange}
+                className="size-4 accent-green-600"
+              />
+              Popular
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                name="is_deal"
+                checked={form.is_deal}
+                onChange={handleChange}
+                className="size-4 accent-green-600"
+              />
+              Deal of the Day
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
+              <input
+                type="checkbox"
+                name="is_featured"
+                checked={form.is_featured}
+                onChange={handleChange}
+                className="size-4 accent-green-600"
+              />
+              Featured
+            </label>
+            <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input
                 type="checkbox"
                 name="is_active"
@@ -285,7 +412,7 @@ function ProductFormModal({ initial, onClose, onSaved }) {
                 onChange={handleChange}
                 className="size-4 accent-green-600"
               />
-              Active (visible on site)
+              Active
             </label>
           </div>
 

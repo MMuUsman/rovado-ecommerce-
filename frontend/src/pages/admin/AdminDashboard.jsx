@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Package, ShoppingBag, Users, DollarSign } from "lucide-react";
+import { Package, ShoppingBag, Users, DollarSign, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
 import { supabase } from "../../services/supabaseClient";
 
 function StatCard({ icon: Icon, label, value, color = "green" }) {
@@ -8,14 +8,15 @@ function StatCard({ icon: Icon, label, value, color = "green" }) {
     blue: "bg-blue-100 text-blue-700",
     yellow: "bg-yellow-100 text-yellow-700",
     purple: "bg-purple-100 text-purple-700",
+    red: "bg-red-100 text-red-700",
   };
   return (
-    <div className="rounded-xl bg-white p-6">
-      <div className={`mb-3 grid size-10 place-items-center rounded-lg ${colors[color]}`}>
+    <div className="rounded-xl bg-white p-6 shadow-sm border border-stone-100">
+      <div className={`mb-3 grid size-10 place-items-center rounded-lg ${colors[color] || colors.green}`}>
         <Icon size={18} />
       </div>
-      <p className="text-xs uppercase text-stone-500">{label}</p>
-      <p className="mt-1 text-3xl font-bold">{value}</p>
+      <p className="text-xs uppercase font-semibold text-stone-500">{label}</p>
+      <p className="mt-1 text-2xl sm:text-3xl font-bold">{value}</p>
     </div>
   );
 }
@@ -26,6 +27,9 @@ export default function AdminDashboard() {
     orders: 0,
     users: 0,
     revenue: 0,
+    pendingOrders: 0,
+    deliveredOrders: 0,
+    lowStock: 0,
   });
   const [recentOrders, setRecentOrders] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -33,8 +37,8 @@ export default function AdminDashboard() {
   useEffect(() => {
     (async () => {
       const [prodRes, orderRes, userRes] = await Promise.all([
-        supabase.from("products").select("*", { count: "exact", head: true }),
-        supabase.from("orders").select("total, created_at, id, status, profiles(email)").order("created_at", { ascending: false }),
+        supabase.from("products").select("id, stock_quantity, stock"),
+        supabase.from("orders").select("total, created_at, id, status, delivery_status, profiles(email)").order("created_at", { ascending: false }),
         supabase.from("profiles").select("*", { count: "exact", head: true }),
       ]);
 
@@ -54,12 +58,18 @@ export default function AdminDashboard() {
       }
 
       const revenue = (orders || []).reduce((s, o) => s + Number(o.total || 0), 0);
+      const pendingOrders = (orders || []).filter((o) => (o.status || "").toLowerCase() === "pending").length;
+      const deliveredOrders = (orders || []).filter((o) => (o.status || "").toLowerCase() === "delivered" || (o.delivery_status || "").toLowerCase() === "delivered").length;
+      const lowStock = (prodRes.data || []).filter((p) => p.stock === "out" || (p.stock_quantity != null && p.stock_quantity <= 5)).length;
 
       setStats({
-        products: prodRes.count ?? 0,
+        products: prodRes.data?.length ?? 0,
         orders: (orders || []).length,
         users: userRes.count ?? 0,
         revenue,
+        pendingOrders,
+        deliveredOrders,
+        lowStock,
       });
 
       setRecentOrders((orders || []).slice(0, 8));
@@ -79,15 +89,18 @@ export default function AdminDashboard() {
       </div>
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard icon={Package} label="Products" value={stats.products} color="green" />
-        <StatCard icon={ShoppingBag} label="Orders" value={stats.orders} color="blue" />
-        <StatCard icon={Users} label="Users" value={stats.users} color="purple" />
+        <StatCard icon={Package} label="Total Products" value={stats.products} color="green" />
+        <StatCard icon={ShoppingBag} label="Total Orders" value={stats.orders} color="blue" />
+        <StatCard icon={Users} label="Total Users" value={stats.users} color="purple" />
         <StatCard
           icon={DollarSign}
-          label="Revenue"
+          label="Total Revenue"
           value={`$${stats.revenue.toFixed(2)}`}
           color="yellow"
         />
+        <StatCard icon={Clock} label="Pending Orders" value={stats.pendingOrders} color="yellow" />
+        <StatCard icon={CheckCircle2} label="Delivered Orders" value={stats.deliveredOrders} color="green" />
+        <StatCard icon={AlertTriangle} label="Low Stock Products" value={stats.lowStock} color="red" />
       </div>
 
       <div className="rounded-xl bg-white p-6">

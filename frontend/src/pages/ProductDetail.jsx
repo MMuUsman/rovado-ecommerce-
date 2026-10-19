@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   Star,
   Heart,
@@ -113,6 +113,7 @@ function BuyBox({ product, selectedColor, selectedMemory }) {
   const { addItem } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [added, setAdded] = useState(false);
+  const navigate = useNavigate();
 
   const isOutOfStock =
     product?.stock === "out" ||
@@ -147,6 +148,12 @@ function BuyBox({ product, selectedColor, selectedMemory }) {
 
     setAdded(true);
     setTimeout(() => setAdded(false), 2000);
+  };
+
+  const handleBuyNow = () => {
+    if (!product || isOutOfStock) return;
+    handleAddToCart();
+    navigate("/checkout");
   };
 
   return (
@@ -191,6 +198,7 @@ function BuyBox({ product, selectedColor, selectedMemory }) {
       </div>
 
       <button
+        type="button"
         onClick={handleAddToCart}
         disabled={isOutOfStock}
         className={`w-full rounded-xl py-4 text-xs font-medium uppercase text-white transition ${
@@ -205,12 +213,14 @@ function BuyBox({ product, selectedColor, selectedMemory }) {
       </button>
 
       <button
+        type="button"
         disabled={isOutOfStock}
-        className={`w-full rounded-xl py-4 text-xs font-medium uppercase text-black ${
-          isOutOfStock ? "cursor-not-allowed bg-stone-300 opacity-50" : "bg-orange-400"
+        onClick={handleBuyNow}
+        className={`w-full rounded-xl py-4 text-xs font-semibold uppercase text-stone-900 transition ${
+          isOutOfStock ? "cursor-not-allowed bg-stone-300 opacity-50" : "bg-emerald-400 hover:bg-emerald-500 shadow-sm"
         }`}
       >
-        Buy with PayPal
+        Buy Now with Stripe
       </button>
 
       <div className="flex items-center justify-between border-b border-zinc-200 pb-4 text-xs">
@@ -229,7 +239,7 @@ function BuyBox({ product, selectedColor, selectedMemory }) {
       <div>
         <p className="mb-2 text-xs text-black">Guaranteed Safe Checkout</p>
         <div className="flex items-center gap-2 text-[10px] text-neutral-500">
-          {["Visa", "MC", "PayPal", "Amex", "Disc"].map((p) => (
+          {["Visa", "Mastercard", "Stripe", "Amex", "Discover"].map((p) => (
             <span
               key={p}
               className="rounded bg-neutral-200 px-2 py-1 font-medium"
@@ -618,7 +628,7 @@ export default function ProductDetail() {
         <div className="rounded-xl bg-white p-20 text-center">
           <p className="text-lg font-bold">Product not found</p>
           <Link
-            to="/category"
+            to={categoryRoute}
             className="mt-2 inline-block text-sm text-green-600 hover:underline"
           >
             ← Back to products
@@ -628,7 +638,11 @@ export default function ProductDetail() {
     );
   }
 
-  const heading = product.title || "Product";
+  const isLaptop = (product?.category || "").includes("laptop") || (product?.category || "").includes("computer");
+  const categoryRoute = isLaptop ? "/laptops" : "/cellphones";
+  const categoryLabel = isLaptop ? "Laptops" : "Cellphones";
+
+  const heading = product.title || product.name || "Product";
   const priceRange =
     product.old_price != null
       ? `$${Number(product.price).toFixed(2)} - $${Number(product.old_price).toFixed(2)}`
@@ -636,7 +650,7 @@ export default function ProductDetail() {
 
   const sku = product.sku || `SKU-${product.id}`;
   const brand = product.brand || "Generic";
-  const category = product.category || "Cell Phones & Tablets";
+  const category = categoryLabel;
 
   return (
     <PageShell>
@@ -644,8 +658,7 @@ export default function ProductDetail() {
       <Breadcrumb
         items={[
           { label: "Home", href: "/" },
-          { label: "Shop", href: "/category" },
-          { label: "Products", href: "/category" },
+          { label: categoryLabel, href: categoryRoute },
           { label: heading },
         ]}
       />
@@ -665,19 +678,50 @@ export default function ProductDetail() {
               {priceRange}
             </p>
 
+            {/* Real Product Highlights / Specifications */}
             <ul className="mt-4 space-y-2 text-xs text-black">
-              <li className="flex gap-2">
-                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-stone-500" />
-                Intel LGA 1700 Socket: Supports 13th &amp; 12th Gen Intel Core
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-stone-500" />
-                DDR5 Compatible: 4×SMD DIMMs with XMP 3.0 Memory
-              </li>
-              <li className="flex gap-2">
-                <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-stone-500" />
-                Commanding Power Design: Twin 16+1+2 Phases Digital VRM
-              </li>
+              {product.processor && (
+                <li className="flex gap-2">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-stone-500" />
+                  <span><strong>Processor:</strong> {product.processor}</span>
+                </li>
+              )}
+              {(product.ram || product.storage) && (
+                <li className="flex gap-2">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-stone-500" />
+                  <span><strong>Memory &amp; Storage:</strong> {[product.ram && `${product.ram} RAM`, product.storage && `${product.storage} Storage`].filter(Boolean).join(" • ")}</span>
+                </li>
+              )}
+              {product.display && (
+                <li className="flex gap-2">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-stone-500" />
+                  <span><strong>Display:</strong> {product.display}</span>
+                </li>
+              )}
+              {product.gpu && (
+                <li className="flex gap-2">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-stone-500" />
+                  <span><strong>Graphics:</strong> {product.gpu}</span>
+                </li>
+              )}
+              {product.camera && (
+                <li className="flex gap-2">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-stone-500" />
+                  <span><strong>Camera:</strong> {product.camera}</span>
+                </li>
+              )}
+              {product.operating_system && (
+                <li className="flex gap-2">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-stone-500" />
+                  <span><strong>Operating System:</strong> {product.operating_system}</span>
+                </li>
+              )}
+              {!product.processor && !product.display && product.short_description && (
+                <li className="flex gap-2">
+                  <span className="mt-1.5 size-1.5 shrink-0 rounded-full bg-stone-500" />
+                  <span>{product.short_description}</span>
+                </li>
+              )}
             </ul>
 
             <div className="mt-4 flex gap-2">
@@ -970,16 +1014,19 @@ export default function ProductDetail() {
         {tab === "reviews" && <ReviewsSection productId={product.id} />}
 
         {tab === "info" && (
-          <div className="space-y-2 text-sm text-stone-500">
-            <p>
-              <b className="text-black">Brand:</b> {brand}
-            </p>
-            <p>
-              <b className="text-black">Category:</b> {category}
-            </p>
-            <p>
-              <b className="text-black">SKU:</b> {sku}
-            </p>
+          <div className="space-y-3 text-sm text-stone-600">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 bg-neutral-50 p-5 rounded-xl border border-neutral-200">
+              <p><b className="text-black uppercase text-xs font-bold">Brand:</b> {brand}</p>
+              <p><b className="text-black uppercase text-xs font-bold">Category:</b> {categoryLabel}</p>
+              <p><b className="text-black uppercase text-xs font-bold">SKU:</b> {sku}</p>
+              {product.processor && <p><b className="text-black uppercase text-xs font-bold">Processor:</b> {product.processor}</p>}
+              {product.ram && <p><b className="text-black uppercase text-xs font-bold">RAM:</b> {product.ram}</p>}
+              {product.storage && <p><b className="text-black uppercase text-xs font-bold">Storage:</b> {product.storage}</p>}
+              {product.display && <p><b className="text-black uppercase text-xs font-bold">Display:</b> {product.display}</p>}
+              {product.operating_system && <p><b className="text-black uppercase text-xs font-bold">Operating System:</b> {product.operating_system}</p>}
+              {product.gpu && <p><b className="text-black uppercase text-xs font-bold">Graphics (GPU):</b> {product.gpu}</p>}
+              {product.camera && <p><b className="text-black uppercase text-xs font-bold">Camera:</b> {product.camera}</p>}
+            </div>
           </div>
         )}
       </section>
@@ -989,7 +1036,7 @@ export default function ProductDetail() {
         <ProductRail
           title="Related products"
           products={relatedData}
-          viewAllHref="/category"
+          viewAllHref={categoryRoute}
         />
       )}
 
@@ -1001,7 +1048,7 @@ export default function ProductDetail() {
               Your recently viewed
             </h2>
             <Link
-              to="/category"
+              to={categoryRoute}
               className="text-xs text-stone-500 hover:text-green-600"
             >
               View All →

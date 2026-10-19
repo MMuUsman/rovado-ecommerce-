@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
-import { ChevronRight, Camera, Trash2, Package, Truck, MapPin, CheckCircle } from "lucide-react";
+import { ChevronRight, Camera, Trash2, Package, Truck, MapPin, CheckCircle, Heart, ShoppingCart } from "lucide-react";
 import { Header, Breadcrumb, PageShell } from "../components/Layout";
 import { useAuth } from "../context/AuthContext";
+import { useWishlist } from "../context/WishlistContext";
+import { useCart } from "../context/CartContext";
 import { supabase } from "../services/supabaseClient";
 
-const navItems = ["Account info", "My order", "My address", "Change password"];
+const navItems = ["Account info", "My order", "My wishlist", "My address", "Change password"];
 
 /* ---------------------------------------------------------
    Avatar Component — shows photo, initials, or placeholder
@@ -53,6 +55,8 @@ export default function Profile() {
   const [active, setActive] = useState(
     location.state?.tab || (location.state?.orderSuccess ? "My order" : "Account info")
   );
+  const { items: wishlistItems, removeFromWishlist } = useWishlist();
+  const { addToCart } = useCart();
   const fileInputRef = useRef(null);
 
   // Form state
@@ -634,6 +638,93 @@ export default function Profile() {
                     </div>
                   </div>
                 ))}
+              </div>
+            )}
+
+            {/* MY WISHLIST */}
+            {active === "My wishlist" && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+                  <h2 className="text-sm font-bold uppercase text-stone-800 flex items-center gap-2">
+                    <Heart size={16} className="fill-red-500 text-red-500" />
+                    My Saved Items ({wishlistItems.length})
+                  </h2>
+                  {wishlistItems.length > 0 && (
+                    <button
+                      onClick={() => {
+                        wishlistItems.forEach((it) => {
+                          addToCart({
+                            id: it.id,
+                            title: it.title || it.name,
+                            price: typeof it.price === "number" ? it.price : parseFloat(String(it.price || 0).replace(/[^0-9.]/g, "")),
+                            image: it.image,
+                            category: it.category,
+                            brand: it.brand,
+                          });
+                        });
+                      }}
+                      className="rounded bg-green-600 px-3 py-1.5 text-xs font-bold uppercase text-white hover:bg-green-700 transition"
+                    >
+                      Add All to Cart
+                    </button>
+                  )}
+                </div>
+
+                {wishlistItems.length === 0 ? (
+                  <div className="rounded-xl bg-neutral-50 p-8 text-center text-stone-500">
+                    <Heart size={32} className="mx-auto text-stone-300 mb-2" />
+                    <p className="font-medium text-sm">Your wishlist is currently empty.</p>
+                    <p className="text-xs text-stone-400 mt-1">
+                      Browse our store and tap the heart icon to save products for later.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {wishlistItems.map((item) => (
+                      <div
+                        key={item.id}
+                        className="flex items-center gap-3 rounded-xl border border-stone-200 p-3 bg-white"
+                      >
+                        <img
+                          src={item.image}
+                          alt={item.title}
+                          className="size-20 rounded-lg object-cover border border-stone-100"
+                        />
+                        <div className="min-w-0 flex-1">
+                          <p className="font-bold text-sm text-stone-900 truncate">
+                            {item.title || item.name}
+                          </p>
+                          <p className="text-sm font-semibold text-green-600 mt-0.5">
+                            {item.price}
+                          </p>
+                          <div className="mt-2 flex items-center gap-2">
+                            <button
+                              onClick={() => {
+                                addToCart({
+                                  id: item.id,
+                                  title: item.title || item.name,
+                                  price: typeof item.price === "number" ? item.price : parseFloat(String(item.price || 0).replace(/[^0-9.]/g, "")),
+                                  image: item.image,
+                                  category: item.category,
+                                  brand: item.brand,
+                                });
+                              }}
+                              className="flex items-center gap-1 rounded bg-green-600 px-2.5 py-1 text-[11px] font-bold uppercase text-white hover:bg-green-700 transition"
+                            >
+                              <ShoppingCart size={12} /> Add to Cart
+                            </button>
+                            <button
+                              onClick={() => removeFromWishlist(item.id)}
+                              className="flex items-center gap-1 rounded border border-stone-300 px-2 py-1 text-[11px] font-medium text-stone-600 hover:text-red-600 hover:border-red-300 transition"
+                            >
+                              <Trash2 size={12} /> Remove
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
 
