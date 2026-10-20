@@ -360,13 +360,35 @@ export function Header() {
           </Link>
         </div>
 
-        {/* Mobile toggle */}
-        <button
-          className="grid size-10 place-items-center rounded-md bg-violet-100 lg:hidden"
-          onClick={() => setOpen((o) => !o)}
-        >
-          {open ? <X size={20} /> : <Menu size={20} />}
-        </button>
+        {/* Mobile quick actions + toggle */}
+        <div className="flex items-center gap-2 lg:hidden">
+          <Link
+            to="/search"
+            aria-label="Search"
+            className="grid size-9 place-items-center rounded-full bg-violet-100 text-stone-700"
+          >
+            <Search size={16} />
+          </Link>
+          <Link
+            to="/cart"
+            aria-label="Cart"
+            className="relative grid size-9 place-items-center rounded-full bg-violet-100 text-stone-700"
+          >
+            <ShoppingCart size={16} />
+            {count > 0 && (
+              <span className="absolute -right-1 -top-1 grid size-4 place-items-center rounded-full bg-green-600 text-[9px] font-bold text-white">
+                {count}
+              </span>
+            )}
+          </Link>
+          <button
+            className="grid size-9 place-items-center rounded-md bg-violet-100"
+            onClick={() => setOpen((o) => !o)}
+            aria-label="Toggle menu"
+          >
+            {open ? <X size={18} /> : <Menu size={18} />}
+          </button>
+        </div>
       </div>
 
       {/* MOBILE MENU */}
@@ -699,7 +721,7 @@ export function Footer() {
             © 2026 <span className="font-bold text-black">usman.dev</span>. All Rights Reserved
           </p>
           <div className="flex items-center gap-3">
-            {["Visa", "Mastercard", "PayPal", "Amex", "Discover"].map((p) => (
+            {["Visa", "Mastercard", "Stripe", "Amex", "Discover"].map((p) => (
               <span key={p} className="rounded bg-neutral-100 px-2 py-1 text-[10px] text-neutral-500">
                 {p}
               </span>

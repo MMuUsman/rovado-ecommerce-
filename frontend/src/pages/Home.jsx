@@ -25,7 +25,7 @@ import { supabase } from "../services/supabaseClient";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
 import { useWishlist } from "../context/WishlistContext";
-import { useLoading } from "../context/LoadingContext";
+import { useLoading, RovadoLoadingScreen } from "../context/LoadingContext";
 
 const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80";
@@ -134,7 +134,7 @@ function ProductCard({ product }) {
   );
 }
 
-function ProductRail({ title, tabs, products, viewAllHref = "/category" }) {
+function ProductRail({ title, tabs, products, viewAllHref = "/cellphones" }) {
   const [active, setActive] = useState(tabs?.[0] ?? "");
   const scrollerId = `rail-${(title || "products").replace(/\s+/g, "-")}`;
 
@@ -290,7 +290,7 @@ const getFooterLink = (item) => {
   ) {
     return "/contact";
   }
-  return "/category";
+  return "/cellphones";
 };
 
 /* =========================================================
@@ -903,7 +903,7 @@ function HeroCarousel({ products = [] }) {
             </p>
           )}
           <Link
-            to={slide.productId ? `/product/${slide.productId}` : "/category"}
+            to={slide.productId ? `/product/${slide.productId}` : "/cellphones"}
             className={`mt-1 sm:mt-2 w-fit rounded-lg px-4 sm:px-6 py-2 text-[11px] sm:text-xs font-medium uppercase ${slide.ctaStyle}`}
           >
             {slide.cta}
@@ -1690,7 +1690,7 @@ function AboutBlurb() {
       <p className="mt-3 sm:mt-4 text-xs sm:text-sm leading-6 text-stone-500">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla vitae posuere mi. Quisque iaculis dignissim scelerisque.
       </p>
-      <Link to="/category" className="mt-4 flex items-center gap-1 text-xs hover:text-green-600">
+      <Link to="/cellphones" className="mt-4 flex items-center gap-1 text-xs hover:text-green-600">
         View All <ChevronRight size={12} />
       </Link>
     </section>
@@ -1780,7 +1780,7 @@ function Footer() {
             © 2026 <span className="font-bold text-black">usman.dev</span>. All Rights Reserved
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-            {["Visa", "Mastercard", "PayPal", "Amex", "Discover"].map((p) => (
+            {["Visa", "Mastercard", "Stripe", "Amex", "Discover"].map((p) => (
               <span key={p} className="rounded bg-neutral-100 px-2 py-1 text-[10px] text-neutral-500">
                 {p}
               </span>
@@ -1809,17 +1809,19 @@ export default function Home() {
     (async () => {
       startLoading("home_products");
       try {
-        // Fetch deals from backend if available
-        try {
-          const res = await fetch("http://localhost:4000/api/deals");
-          if (res.ok) {
-            const json = await res.json();
-            if (json.deals && json.deals.length > 0) {
-              setDealsData(json.deals);
+        // Fetch deals from backend if on localhost
+        if (typeof window !== "undefined" && (window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1")) {
+          try {
+            const res = await fetch("http://localhost:4000/api/deals");
+            if (res.ok) {
+              const json = await res.json();
+              if (json.deals && json.deals.length > 0) {
+                setDealsData(json.deals);
+              }
             }
+          } catch {
+            // ignore backend fallback
           }
-        } catch {
-          // ignore backend fallback
         }
 
         const { data, error } = await supabase
@@ -1884,6 +1886,19 @@ export default function Home() {
   };
 
   const recentlyViewedData = getRecentlyViewed();
+
+  if (loading && allProducts.length === 0) {
+    return (
+      <div className="min-h-screen bg-gray-200">
+        <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:gap-4 px-2 sm:px-4 lg:px-6 py-3 sm:py-4">
+          <Header />
+          <PromoBar />
+          <RovadoLoadingScreen message="Loading Rovado IT Store..." />
+        </div>
+        <Footer />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-200">

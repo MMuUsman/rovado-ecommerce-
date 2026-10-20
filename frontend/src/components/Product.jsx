@@ -163,7 +163,7 @@ export function ProductGridCard({ product }) {
   );
 }
 
-export function ProductRail({ title, products, viewAllHref = "/category" }) {
+export function ProductRail({ title, products, viewAllHref = "/cellphones" }) {
   const scrollerId = `rail-${(title || "products").replace(/\s+/g, "-")}`;
 
   const scroll = (dir) => {

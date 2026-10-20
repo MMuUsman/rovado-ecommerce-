@@ -22,7 +22,9 @@ function CartRow({ item, onQty, onRemove }) {
 
       <div className="min-w-0 flex-1">
         {item.rating != null && <StarRating count={item.rating} reviews={item.reviews} />}
-        <h3 className="mt-1 text-sm font-bold sm:text-base">{item.title}</h3>
+        <Link to={`/product/${item.id}`} className="hover:text-green-600 transition">
+          <h3 className="mt-1 text-sm font-bold sm:text-base">{item.title}</h3>
+        </Link>
         <p className="mt-2 text-lg font-semibold">${Number(item.price).toFixed(2)}</p>
 
         <div className="mt-4 flex items-center gap-3">
@@ -88,7 +90,7 @@ export default function Cart() {
               <div className="rounded-xl bg-neutral-50 p-8 text-center text-sm text-stone-500">
                 <p>Your cart is empty.</p>
                 <Link
-                  to="/category"
+                  to="/cellphones"
                   className="mt-3 inline-block rounded-lg bg-green-600 px-5 py-2.5 text-xs font-semibold uppercase text-white hover:bg-green-700 transition"
                 >
                   Continue Shopping

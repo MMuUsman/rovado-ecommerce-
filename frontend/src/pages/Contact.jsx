@@ -417,7 +417,7 @@ export default function Contact() {
       <Breadcrumb
         items={[
           { label: "Home", href: "/" },
-          { label: "Shop", href: "/category" },
+          { label: "Cellphones", href: "/cellphones" },
           { label: "Contact" },
         ]}
       />

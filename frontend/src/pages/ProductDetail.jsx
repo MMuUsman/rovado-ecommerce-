@@ -19,7 +19,7 @@ import { StarRating, ProductRail } from "../components/Product";
 import { supabase } from "../services/supabaseClient";
 import { useCart } from "../context/CartContext";
 import { useWishlist } from "../context/WishlistContext";
-import { useLoading } from "../context/LoadingContext";
+import { useLoading, RovadoLoadingScreen } from "../context/LoadingContext";
 import ReviewsSection from "../components/ReviewsSection";
 
 /* =========================================================
@@ -522,24 +522,38 @@ export default function ProductDetail() {
 
   useEffect(() => {
     (async () => {
-      if (!id) {
-        setLoading(false);
-        return;
-      }
-
       startLoading("product_detail");
       try {
-        const cleanId = String(id).trim();
+        let queryId = id;
+        if (!queryId) {
+          const { data: firstProd } = await supabase
+            .from("products")
+            .select("id")
+            .eq("is_active", true)
+            .order("id", { ascending: true })
+            .limit(1)
+            .maybeSingle();
+
+          if (firstProd) {
+            queryId = firstProd.id;
+          } else {
+            setLoading(false);
+            stopLoading("product_detail");
+            return;
+          }
+        }
+
+        const cleanId = String(queryId).trim();
         const numericId = parseInt(cleanId, 10);
-        const queryId = !isNaN(numericId) && String(numericId) === cleanId ? numericId : cleanId;
+        const resolvedId = !isNaN(numericId) && String(numericId) === cleanId ? numericId : cleanId;
 
         let { data: prod, error } = await supabase
           .from("products")
           .select("*")
-          .eq("id", queryId)
+          .eq("id", resolvedId)
           .maybeSingle();
 
-        if (!prod && !error && queryId !== cleanId) {
+        if (!prod && !error && resolvedId !== cleanId) {
           const fallback = await supabase
             .from("products")
             .select("*")
@@ -553,7 +567,7 @@ export default function ProductDetail() {
         if (prod) {
           setProduct(prod);
 
-          // ✅ Recently viewed me save karo
+          // Save to recently viewed
           try {
             const stored = JSON.parse(
               localStorage.getItem("rovado_recently_viewed") || "[]",
@@ -586,7 +600,7 @@ export default function ProductDetail() {
           .from("products")
           .select("*")
           .eq("is_active", true)
-          .neq("id", queryId)
+          .neq("id", resolvedId)
           .order("id", { ascending: false })
           .limit(4);
 
@@ -614,9 +628,7 @@ export default function ProductDetail() {
     return (
       <PageShell>
         <Header />
-        <div className="rounded-xl bg-white p-20 text-center text-sm text-stone-500">
-          Loading product…
-        </div>
+        <RovadoLoadingScreen message="Loading Product Details..." />
       </PageShell>
     );
   }
@@ -628,7 +640,7 @@ export default function ProductDetail() {
         <div className="rounded-xl bg-white p-20 text-center">
           <p className="text-lg font-bold">Product not found</p>
           <Link
-            to={categoryRoute}
+            to="/cellphones"
             className="mt-2 inline-block text-sm text-green-600 hover:underline"
           >
             ← Back to products

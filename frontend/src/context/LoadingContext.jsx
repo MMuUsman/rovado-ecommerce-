@@ -2,6 +2,41 @@ import { createContext, useContext, useState, useCallback, useMemo } from "react
 
 const LoadingContext = createContext(null);
 
+export function RovadoLoadingScreen({ message = "Loading...", fullScreen = true }) {
+  const content = (
+    <div className="flex flex-col items-center justify-center p-8 text-center select-none">
+      <div className="relative mb-5 flex items-center justify-center">
+        <div className="size-20 sm:size-24 rounded-2xl overflow-hidden bg-white shadow-lg ring-1 ring-black/5 animate-rovado-pulse flex items-center justify-center p-2">
+          <img
+            src="/Rovadologo.jpg"
+            alt="Rovado"
+            className="w-full h-full object-contain"
+          />
+        </div>
+        <div className="absolute -inset-2 rounded-3xl bg-green-500/10 -z-10 blur-md animate-pulse" />
+      </div>
+
+      <div className="w-36 h-1 bg-stone-200 rounded-full overflow-hidden mb-3">
+        <div className="h-full bg-green-600 rounded-full w-2/3 animate-[pulse_1s_infinite]" />
+      </div>
+
+      <p className="text-xs font-semibold uppercase tracking-wider text-stone-700">
+        {message}
+      </p>
+    </div>
+  );
+
+  if (fullScreen) {
+    return (
+      <div className="min-h-[50vh] w-full flex items-center justify-center bg-white/80 backdrop-blur-sm rounded-xl py-12">
+        {content}
+      </div>
+    );
+  }
+
+  return content;
+}
+
 export function LoadingProvider({ children }) {
   const [tasks, setTasks] = useState(new Set());
 
@@ -28,6 +63,7 @@ export function LoadingProvider({ children }) {
       isLoading,
       startLoading,
       stopLoading,
+      RovadoLoadingScreen,
     }),
     [isLoading, startLoading, stopLoading]
   );
@@ -40,8 +76,9 @@ export function LoadingProvider({ children }) {
           <div className="h-1 w-full bg-green-100 overflow-hidden">
             <div className="h-full bg-green-600 animate-[pulse_1s_infinite] w-full" />
           </div>
-          <div className="mx-auto mt-2 w-fit rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-green-700 shadow-md ring-1 ring-black/5 backdrop-blur-sm flex items-center gap-1.5">
-            <span className="size-2 rounded-full bg-green-600 animate-ping" />
+          <div className="mx-auto mt-2 w-fit rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-green-700 shadow-md ring-1 ring-black/5 backdrop-blur-sm flex items-center gap-2">
+            <img src="/Rovadologo.jpg" alt="" className="size-3.5 object-contain" />
+            <span className="size-1.5 rounded-full bg-green-600 animate-ping" />
             <span>Rovado • Loading...</span>
           </div>
         </div>
@@ -58,6 +95,7 @@ export const useLoading = () => {
       isLoading: false,
       startLoading: () => {},
       stopLoading: () => {},
+      RovadoLoadingScreen,
     };
   }
   return ctx;

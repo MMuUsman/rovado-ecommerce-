@@ -8,6 +8,7 @@ import {
   CheckCircle2,
   Zap,
   ExternalLink,
+  MapPin,
 } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { Header, Breadcrumb, PageShell } from "../components/Layout";
@@ -112,6 +113,50 @@ export default function Checkout() {
       setBilling((b) => ({ ...b, email: user.email }));
     }
   }, [user]);
+
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState("");
+  const [saveToBook, setSaveToBook] = useState(false);
+
+  useEffect(() => {
+    if (!user) return;
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from("addresses")
+          .select("*")
+          .eq("user_id", user.id)
+          .order("is_default", { ascending: false });
+
+        if (!error && data && data.length > 0) {
+          setSavedAddresses(data);
+          const defaultAddr = data.find((a) => a.is_default) || data[0];
+          setSelectedAddressId(defaultAddr.id);
+          applySavedAddress(defaultAddr);
+        }
+      } catch (err) {
+        console.warn("[Checkout] fetch addresses err:", err);
+      }
+    })();
+  }, [user]);
+
+  const applySavedAddress = (addr) => {
+    if (!addr) return;
+    const parts = (addr.full_name || "").trim().split(" ");
+    const first_name = parts[0] || "";
+    const last_name = parts.slice(1).join(" ") || "";
+    setBilling((b) => ({
+      ...b,
+      first_name: first_name || b.first_name,
+      last_name: last_name || b.last_name,
+      phone: addr.phone || b.phone,
+      street: addr.address_line || b.street,
+      city: addr.city || b.city,
+      state: addr.state || b.state,
+      zip: addr.postal_code || b.zip,
+      country: addr.country || b.country,
+    }));
+  };
 
   const shipping = subtotal * 0.01;
   const tax = subtotal * 0.02;
@@ -230,6 +275,24 @@ export default function Checkout() {
           user,
         });
 
+        if (user && saveToBook && billing.street && billing.city && billing.zip) {
+          try {
+            await supabase.from("addresses").insert({
+              user_id: user.id,
+              full_name: `${billing.first_name} ${billing.last_name}`.trim(),
+              phone: billing.phone,
+              address_line: billing.street,
+              city: billing.city,
+              state: billing.state,
+              postal_code: billing.zip,
+              country: billing.country,
+              is_default: savedAddresses.length === 0,
+            });
+          } catch (e) {
+            console.warn("[Checkout] Save address to book error:", e);
+          }
+        }
+
         setLoading(false);
         setSuccessOrder(result);
         clearCart();
@@ -256,9 +319,27 @@ export default function Checkout() {
         return;
       }
 
+      if (user && saveToBook && billing.street && billing.city && billing.zip) {
+        try {
+          await supabase.from("addresses").insert({
+            user_id: user.id,
+            full_name: `${billing.first_name} ${billing.last_name}`.trim(),
+            phone: billing.phone,
+            address_line: billing.street,
+            city: billing.city,
+            state: billing.state,
+            postal_code: billing.zip,
+            country: billing.country,
+            is_default: savedAddresses.length === 0,
+          });
+        } catch (e) {
+          console.warn("[Checkout] Save address to book error:", e);
+        }
+      }
+
       setLoading(false);
       clearCart();
-      navigate("/profile", {
+      navigate("/profile/orders", {
         replace: true,
         state: { tab: "My order", orderSuccess: true, orderId: rpcData?.order_id || rpcData?.order?.id },
       });
@@ -403,7 +484,7 @@ export default function Checkout() {
                 <button
                   type="button"
                   onClick={() =>
-                    navigate("/profile", {
+                    navigate("/profile/orders", {
                       state: { tab: "My order", orderSuccess: true, orderId: successOrder.orderId },
                     })
                   }
@@ -426,6 +507,35 @@ export default function Checkout() {
           {/* LEFT: Billing Details */}
           <div>
             <h2 className="mb-6 text-base font-bold text-stone-900">Billing Detail</h2>
+
+            {savedAddresses.length > 0 && (
+              <div className="mb-6 rounded-xl border border-green-200 bg-green-50/50 p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-xs font-bold uppercase text-green-900 flex items-center gap-1.5">
+                    <MapPin size={14} className="text-green-600" /> Use Saved Address
+                  </span>
+                  <Link to="/profile/address" className="text-xs text-green-700 hover:underline">
+                    Manage Addresses →
+                  </Link>
+                </div>
+                <select
+                  value={selectedAddressId}
+                  onChange={(e) => {
+                    const id = e.target.value;
+                    setSelectedAddressId(id);
+                    const chosen = savedAddresses.find((a) => a.id === id);
+                    if (chosen) applySavedAddress(chosen);
+                  }}
+                  className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm text-stone-800 outline-none focus:border-green-600"
+                >
+                  {savedAddresses.map((a) => (
+                    <option key={a.id} value={a.id}>
+                      {a.full_name} — {a.address_line}, {a.city} {a.postal_code} {a.is_default ? "(Default)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
               <Field
                 label="First Name"
@@ -525,6 +635,21 @@ export default function Checkout() {
                 autocomplete="email"
               />
             </div>
+
+            {user && (
+              <div className="mt-4 flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="save_to_book"
+                  checked={saveToBook}
+                  onChange={(e) => setSaveToBook(e.target.checked)}
+                  className="size-4 rounded text-green-600 focus:ring-green-500 cursor-pointer"
+                />
+                <label htmlFor="save_to_book" className="text-xs text-stone-700 cursor-pointer">
+                  Save this address to My Address book for fast 1-click checkout
+                </label>
+              </div>
+            )}
 
             <h2 className="mb-4 mt-10 text-base font-bold text-stone-900">Additional Information</h2>
             <label className="mb-2 block text-sm font-medium text-stone-700">

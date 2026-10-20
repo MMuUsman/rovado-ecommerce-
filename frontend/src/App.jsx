@@ -1,4 +1,4 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
 import Cart from "./pages/Cart";
 import Checkout from "./pages/Checkout";
@@ -23,55 +23,85 @@ import AdminOrders from "./pages/admin/AdminOrders";
 import AdminUsers from "./pages/admin/AdminUsers";
 
 export default function App() {
+  const location = useLocation();
+
   return (
     <>
       <ScrollToTop />
       <Chatbot />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        {/* Remove All Products: redirect /category to /cellphones */}
-        <Route path="/category" element={<Navigate to="/cellphones" replace />} />
-        <Route path="/search" element={<CategoryListing />} />
-        <Route path="/cellphones" element={<CellphonesPage />} />
-        <Route path="/laptops" element={<LaptopsPage />} />
-        <Route path="/product/:id" element={<ProductDetail />} />
-        <Route path="/cart" element={<Cart />} />
-        <Route path="/wishlist" element={<WishlistPage />} />
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="/about" element={<About />} />
-        <Route
-          path="/checkout"
-          element={
-            <ProtectedRoute>
-              <Checkout />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/admin"
-          element={
-            <AdminRoute>
-              <AdminLayout />
-            </AdminRoute>
-          }
-        >
-          <Route index element={<AdminDashboard />} />
-          <Route path="products" element={<AdminProducts />} />
-          <Route path="orders" element={<AdminOrders />} />
-          <Route path="users" element={<AdminUsers />} />
-        </Route>
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <div key={location.pathname} className="page-fade-in">
+        <Routes location={location}>
+          <Route path="/" element={<Home />} />
+          {/* Redirect /category to /cellphones */}
+          <Route path="/category" element={<Navigate to="/cellphones" replace />} />
+          <Route path="/search" element={<CategoryListing />} />
+          <Route path="/cellphones" element={<CellphonesPage />} />
+          <Route path="/laptops" element={<LaptopsPage />} />
+          {/* Support both direct /product and /product/:id */}
+          <Route path="/product" element={<ProductDetail />} />
+          <Route path="/product/:id" element={<ProductDetail />} />
+          <Route path="/cart" element={<Cart />} />
+          <Route path="/wishlist" element={<WishlistPage />} />
+          <Route path="/login" element={<Login />} />
+          <Route path="/register" element={<Register />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/about" element={<About />} />
+          <Route
+            path="/checkout"
+            element={
+              <ProtectedRoute>
+                <Checkout />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <Profile />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/orders"
+            element={
+              <ProtectedRoute>
+                <Profile defaultTab="My order" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/orders/:orderId"
+            element={
+              <ProtectedRoute>
+                <Profile defaultTab="My order" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile/address"
+            element={
+              <ProtectedRoute>
+                <Profile defaultTab="My address" />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <AdminRoute>
+                <AdminLayout />
+              </AdminRoute>
+            }
+          >
+            <Route index element={<AdminDashboard />} />
+            <Route path="products" element={<AdminProducts />} />
+            <Route path="orders" element={<AdminOrders />} />
+            <Route path="users" element={<AdminUsers />} />
+          </Route>
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </div>
     </>
   );
 }

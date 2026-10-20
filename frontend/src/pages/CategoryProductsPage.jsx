@@ -10,7 +10,7 @@ import {
 import { Header, PromoBar, Breadcrumb, PageShell } from "../components/Layout";
 import { ProductGridCard, StarRating } from "../components/Product";
 import { supabase } from "../services/supabaseClient";
-import { useLoading } from "../context/LoadingContext";
+import { useLoading, RovadoLoadingScreen } from "../context/LoadingContext";
 
 const FALLBACK_IMG =
   "https://images.unsplash.com/photo-1518770660439-4636190af475?w=600&q=80";
@@ -395,10 +395,10 @@ function FiltersSidebar({
 /* =========================================================
    Side Promo Banner
 ========================================================= */
-function SidePromoBanner() {
+function SidePromoBanner({ href = "/cellphones" }) {
   return (
     <Link
-      to="/category"
+      to={href}
       className="relative block h-64 overflow-hidden rounded-xl bg-neutral-800"
     >
       <img
@@ -779,13 +779,15 @@ export default function CategoryProductsPage({
     ? `${activeCategory} — ${pageTitle}`
     : pageTitle;
 
+  const basePath = categoryKey.includes("laptop") ? "/laptops" : "/cellphones";
+
   return (
     <PageShell>
       <Header />
       <Breadcrumb
         items={[
           { label: "Home", href: "/" },
-          { label: "Shop", href: "/category" },
+          { label: "Shop", href: basePath },
           { label: breadcrumbLabel },
         ]}
       />
@@ -796,7 +798,7 @@ export default function CategoryProductsPage({
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-[2fr_1fr]">
           <Link
-            to="/category"
+            to={basePath}
             className="group relative block overflow-hidden rounded-xl"
           >
             <img
@@ -817,7 +819,7 @@ export default function CategoryProductsPage({
           </Link>
 
           <Link
-            to="/category"
+            to={basePath}
             className="group relative block overflow-hidden rounded-xl"
           >
             <img
@@ -844,12 +846,12 @@ export default function CategoryProductsPage({
         </h2>
         <div className="grid grid-cols-3 gap-3 sm:grid-cols-4 sm:gap-4 lg:grid-cols-5">
           {popularCategories.map((c) => {
-            // ✅ Build proper URL
+            // Build proper URL within current category route
             const linkTo = c.brand
-              ? `/category?brand=${encodeURIComponent(c.brand)}`
+              ? `${basePath}?brand=${encodeURIComponent(c.brand)}`
               : c.sub
-              ? `/category?sub=${encodeURIComponent(c.sub)}`
-              : "/category";
+              ? `${basePath}?sub=${encodeURIComponent(c.sub)}`
+              : basePath;
 
             return (
               <Link
@@ -925,7 +927,7 @@ export default function CategoryProductsPage({
                 activeFiltersCount={activeFiltersCount}
               />
 
-              <SidePromoBanner />
+              <SidePromoBanner href={basePath} />
             </div>
           </div>
 
@@ -1013,9 +1015,7 @@ export default function CategoryProductsPage({
             </div>
 
             {loading ? (
-              <p className="py-10 text-center text-sm text-stone-500">
-                Loading products…
-              </p>
+              <RovadoLoadingScreen message="Loading Store Products..." fullScreen={false} />
             ) : filteredProducts.length === 0 ? (
               <div className="py-10 text-center">
                 <p className="text-sm text-stone-500">
@@ -1031,7 +1031,9 @@ export default function CategoryProductsPage({
             ) : (
               <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
                 {paginatedProducts.map((p) => (
-                  <ProductGridCard key={p.id} product={p} />
+                  <div key={p.id} className="card-entrance">
+                    <ProductGridCard product={p} />
+                  </div>
                 ))}
               </div>
             )}

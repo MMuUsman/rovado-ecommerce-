@@ -1,10 +1,25 @@
 import { useState, useEffect, useRef } from "react";
-import { useLocation } from "react-router-dom";
-import { ChevronRight, Camera, Trash2, Package, Truck, MapPin, CheckCircle, Heart, ShoppingCart } from "lucide-react";
+import { useLocation, useNavigate, useParams, Link } from "react-router-dom";
+import {
+  ChevronRight,
+  Camera,
+  Trash2,
+  Package,
+  Truck,
+  MapPin,
+  CheckCircle,
+  Heart,
+  ShoppingCart,
+  Plus,
+  Edit2,
+  ArrowLeft,
+  X,
+} from "lucide-react";
 import { Header, Breadcrumb, PageShell } from "../components/Layout";
 import { useAuth } from "../context/AuthContext";
 import { useWishlist } from "../context/WishlistContext";
 import { useCart } from "../context/CartContext";
+import { useLoading, RovadoLoadingScreen } from "../context/LoadingContext";
 import { supabase } from "../services/supabaseClient";
 
 const navItems = ["Account info", "My order", "My wishlist", "My address", "Change password"];
@@ -49,12 +64,33 @@ function Avatar({ src, name, size = "lg" }) {
 /* ---------------------------------------------------------
    Main Profile Component
 --------------------------------------------------------- */
-export default function Profile() {
+export default function Profile({ defaultTab }) {
   const { user, profile, refreshProfile, signOut } = useAuth();
   const location = useLocation();
-  const [active, setActive] = useState(
-    location.state?.tab || (location.state?.orderSuccess ? "My order" : "Account info")
-  );
+  const navigate = useNavigate();
+  const { orderId } = useParams();
+
+  const getInitialTab = () => {
+    if (defaultTab) return defaultTab;
+    if (orderId || location.pathname.includes("/orders")) return "My order";
+    if (location.pathname.includes("/address")) return "My address";
+    if (location.state?.tab) return location.state.tab;
+    if (location.state?.orderSuccess) return "My order";
+    return "Account info";
+  };
+
+  const [active, setActive] = useState(getInitialTab);
+
+  useEffect(() => {
+    if (orderId || location.pathname.includes("/orders")) {
+      setActive("My order");
+    } else if (location.pathname.includes("/address")) {
+      setActive("My address");
+    } else if (defaultTab) {
+      setActive(defaultTab);
+    }
+  }, [location.pathname, defaultTab, orderId]);
+
   const { items: wishlistItems, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
   const fileInputRef = useRef(null);
@@ -77,6 +113,24 @@ export default function Profile() {
   // Orders state
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+
+  // Address book state
+  const [addresses, setAddresses] = useState([]);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [showAddressForm, setShowAddressForm] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState(null);
+  const [addressSaving, setAddressSaving] = useState(false);
+  const [addressForm, setAddressForm] = useState({
+    full_name: "",
+    phone: "",
+    address_line: "",
+    city: "",
+    state: "",
+    postal_code: "",
+    country: "United States",
+    is_default: false,
+  });
+  const [addressMsg, setAddressMsg] = useState({ type: "", text: "" });
 
   // Password change state
   const [pwd, setPwd] = useState({ current: "", new: "", confirm: "" });
@@ -129,6 +183,53 @@ export default function Profile() {
   }, [active, user]);
 
   // ---------------------------------------------------------
+  // Load addresses
+  // ---------------------------------------------------------
+  const fetchAddresses = async () => {
+    if (!user) return;
+    setAddressLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from("addresses")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("is_default", { ascending: false })
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        console.warn("[profile] addresses fetch:", error.message);
+        setAddresses([]);
+      } else {
+        setAddresses(data ?? []);
+      }
+    } catch (err) {
+      console.warn("[profile] addresses exception:", err);
+    } finally {
+      setAddressLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (active === "My address" && user) {
+      fetchAddresses();
+    }
+  }, [active, user]);
+
+  // ---------------------------------------------------------
+  // Navigation Handler
+  // ---------------------------------------------------------
+  const handleNavSelect = (item) => {
+    setActive(item);
+    if (item === "My order") {
+      navigate("/profile/orders");
+    } else if (item === "My address") {
+      navigate("/profile/address");
+    } else if (item === "Account info") {
+      navigate("/profile");
+    }
+  };
+
+  // ---------------------------------------------------------
   // Account form
   // ---------------------------------------------------------
   const handleChange = (e) => {
@@ -164,13 +265,12 @@ export default function Profile() {
   };
 
   // ---------------------------------------------------------
-  // Avatar Upload (optional)
+  // Avatar Upload
   // ---------------------------------------------------------
   const handleAvatarUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file || !user) return;
 
-    // Validate
     if (!file.type.startsWith("image/")) {
       setAvatarMsg({ type: "error", text: "Please select an image file." });
       return;
@@ -183,11 +283,9 @@ export default function Profile() {
     setAvatarUploading(true);
     setAvatarMsg({ type: "", text: "" });
 
-    // Path: avatars/{user_id}/avatar-{timestamp}.{ext}
     const ext = file.name.split(".").pop();
     const path = `${user.id}/avatar-${Date.now()}.${ext}`;
 
-    // Upload
     const { error: uploadErr } = await supabase.storage
       .from("avatars")
       .upload(path, file, { upsert: true, cacheControl: "3600" });
@@ -198,14 +296,12 @@ export default function Profile() {
       return;
     }
 
-    // Get public URL
     const { data: urlData } = supabase.storage
       .from("avatars")
       .getPublicUrl(path);
 
     const publicUrl = urlData.publicUrl;
 
-    // Update profile row
     const { error: updateErr } = await supabase
       .from("profiles")
       .update({ avatar_url: publicUrl })
@@ -223,13 +319,9 @@ export default function Profile() {
     setAvatarMsg({ type: "success", text: "Photo updated ✓" });
     setTimeout(() => setAvatarMsg({ type: "", text: "" }), 3000);
 
-    // Clear input so same file can be re-selected
     if (fileInputRef.current) fileInputRef.current.value = "";
   };
 
-  // ---------------------------------------------------------
-  // Remove Avatar (optional)
-  // ---------------------------------------------------------
   const handleRemoveAvatar = async () => {
     if (!user) return;
     setAvatarUploading(true);
@@ -251,6 +343,123 @@ export default function Profile() {
     await refreshProfile();
     setAvatarMsg({ type: "success", text: "Photo removed ✓" });
     setTimeout(() => setAvatarMsg({ type: "", text: "" }), 3000);
+  };
+
+  // ---------------------------------------------------------
+  // Address Book Handlers
+  // ---------------------------------------------------------
+  const handleSaveAddress = async (e) => {
+    e?.preventDefault();
+    if (!user) return;
+
+    if (!addressForm.full_name.trim() || !addressForm.address_line.trim() || !addressForm.city.trim() || !addressForm.postal_code.trim()) {
+      setAddressMsg({ type: "error", text: "Please fill in all required fields (Name, Address, City, Postal Code)." });
+      return;
+    }
+
+    setAddressSaving(true);
+    setAddressMsg({ type: "", text: "" });
+
+    try {
+      if (addressForm.is_default) {
+        await supabase
+          .from("addresses")
+          .update({ is_default: false })
+          .eq("user_id", user.id);
+      }
+
+      if (editingAddressId) {
+        const { error } = await supabase
+          .from("addresses")
+          .update({
+            full_name: addressForm.full_name.trim(),
+            phone: addressForm.phone.trim(),
+            address_line: addressForm.address_line.trim(),
+            city: addressForm.city.trim(),
+            state: addressForm.state.trim(),
+            postal_code: addressForm.postal_code.trim(),
+            country: addressForm.country.trim() || "United States",
+            is_default: addressForm.is_default,
+            updated_at: new Date().toISOString(),
+          })
+          .eq("id", editingAddressId)
+          .eq("user_id", user.id);
+
+        if (error) throw error;
+        setAddressMsg({ type: "success", text: "Address updated successfully ✓" });
+      } else {
+        const isFirst = addresses.length === 0;
+        const { error } = await supabase.from("addresses").insert({
+          user_id: user.id,
+          full_name: addressForm.full_name.trim(),
+          phone: addressForm.phone.trim(),
+          address_line: addressForm.address_line.trim(),
+          city: addressForm.city.trim(),
+          state: addressForm.state.trim(),
+          postal_code: addressForm.postal_code.trim(),
+          country: addressForm.country.trim() || "United States",
+          is_default: isFirst ? true : addressForm.is_default,
+        });
+
+        if (error) throw error;
+        setAddressMsg({ type: "success", text: "Address saved successfully ✓" });
+      }
+
+      setShowAddressForm(false);
+      setEditingAddressId(null);
+      setAddressForm({
+        full_name: "",
+        phone: "",
+        address_line: "",
+        city: "",
+        state: "",
+        postal_code: "",
+        country: "United States",
+        is_default: false,
+      });
+      await fetchAddresses();
+      setTimeout(() => setAddressMsg({ type: "", text: "" }), 3000);
+    } catch (err) {
+      setAddressMsg({ type: "error", text: err.message || "Failed to save address." });
+    } finally {
+      setAddressSaving(false);
+    }
+  };
+
+  const handleEditAddress = (addr) => {
+    setEditingAddressId(addr.id);
+    setAddressForm({
+      full_name: addr.full_name,
+      phone: addr.phone || "",
+      address_line: addr.address_line,
+      city: addr.city,
+      state: addr.state || "",
+      postal_code: addr.postal_code,
+      country: addr.country || "United States",
+      is_default: addr.is_default || false,
+    });
+    setShowAddressForm(true);
+  };
+
+  const handleDeleteAddress = async (addrId) => {
+    if (!window.confirm("Are you sure you want to delete this address?")) return;
+    const { error } = await supabase
+      .from("addresses")
+      .delete()
+      .eq("id", addrId)
+      .eq("user_id", user.id);
+
+    if (!error) {
+      setAddresses((prev) => prev.filter((a) => a.id !== addrId));
+      setAddressMsg({ type: "success", text: "Address deleted ✓" });
+      setTimeout(() => setAddressMsg({ type: "", text: "" }), 3000);
+    }
+  };
+
+  const handleSetDefaultAddress = async (addrId) => {
+    await supabase.from("addresses").update({ is_default: false }).eq("user_id", user.id);
+    await supabase.from("addresses").update({ is_default: true }).eq("id", addrId).eq("user_id", user.id);
+    await fetchAddresses();
   };
 
   // ---------------------------------------------------------
@@ -285,6 +494,9 @@ export default function Profile() {
   // Display name
   const displayName =
     profile?.full_name || user?.email?.split("@")[0] || "Guest User";
+
+  // Filter single order if orderId param is present
+  const focusedOrder = orderId ? orders.find((o) => String(o.id) === String(orderId)) : null;
 
   return (
     <PageShell>
@@ -366,11 +578,11 @@ export default function Profile() {
               {navItems.map((item) => (
                 <button
                   key={item}
-                  onClick={() => setActive(item)}
-                  className={`flex w-full items-center justify-between rounded-lg px-4 py-3 text-sm ${
+                  onClick={() => handleNavSelect(item)}
+                  className={`flex w-full items-center justify-between rounded-lg px-4 py-3 text-sm transition ${
                     active === item
-                      ? "bg-green-600 text-white"
-                      : "bg-white text-black"
+                      ? "bg-green-600 text-white font-medium"
+                      : "bg-white text-black hover:bg-stone-100"
                   }`}
                 >
                   {item}
@@ -379,7 +591,7 @@ export default function Profile() {
               ))}
               <button
                 onClick={signOut}
-                className="flex w-full items-center justify-between rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600"
+                className="flex w-full items-center justify-between rounded-lg bg-red-50 px-4 py-3 text-sm text-red-600 hover:bg-red-100 transition"
               >
                 Logout
                 <ChevronRight size={12} />
@@ -461,7 +673,7 @@ export default function Profile() {
                 <button
                   onClick={handleSaveAccount}
                   disabled={saving}
-                  className="rounded-xl bg-green-600 px-8 py-4 text-xs font-medium uppercase text-white disabled:opacity-60"
+                  className="rounded-xl bg-green-600 px-8 py-4 text-xs font-medium uppercase text-white hover:bg-green-700 transition disabled:opacity-60"
                 >
                   {saving ? "Saving…" : "Save"}
                 </button>
@@ -476,29 +688,62 @@ export default function Profile() {
                     ✓ Your order was placed successfully! Thank you for your purchase.
                   </div>
                 )}
+
+                {orderId && (
+                  <div className="flex items-center justify-between rounded-xl bg-neutral-100 p-3 text-xs">
+                    <span className="font-bold">Focusing on Order #{orderId}</span>
+                    <Link
+                      to="/profile/orders"
+                      className="flex items-center gap-1 font-bold text-green-700 hover:underline"
+                    >
+                      <ArrowLeft size={12} /> View all orders
+                    </Link>
+                  </div>
+                )}
+
                 {ordersLoading && (
-                  <p className="text-sm text-stone-500">Loading orders…</p>
+                  <RovadoLoadingScreen message="Loading your orders..." fullScreen={false} />
                 )}
 
                 {!ordersLoading && orders.length === 0 && (
-                  <p className="rounded-xl bg-neutral-50 p-6 text-sm text-stone-500">
-                    You have no orders yet.
-                  </p>
+                  <div className="rounded-xl bg-neutral-50 p-8 text-center text-sm text-stone-500">
+                    <Package size={36} className="mx-auto mb-2 text-stone-300" />
+                    <p className="font-medium text-black">You have no orders yet.</p>
+                    <p className="mt-1 text-xs text-stone-400">
+                      When you place an order, it will appear here with live tracking and receipts.
+                    </p>
+                    <Link
+                      to="/cellphones"
+                      className="mt-4 inline-block rounded-lg bg-green-600 px-4 py-2 text-xs font-bold uppercase text-white hover:bg-green-700"
+                    >
+                      Start Shopping
+                    </Link>
+                  </div>
                 )}
 
-                {orders.map((o) => (
+                {/* Render Orders list or focused order */}
+                {(focusedOrder ? [focusedOrder] : orders).map((o) => (
                   <div
                     key={o.id}
-                    className="rounded-xl border border-stone-200 p-5 space-y-4"
+                    className={`rounded-xl border transition p-5 space-y-4 ${
+                      String(o.id) === String(orderId)
+                        ? "border-green-600 shadow-md ring-1 ring-green-600/30"
+                        : "border-stone-200"
+                    }`}
                   >
                     {/* Header info */}
                     <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 pb-3">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="text-sm font-bold">Order #{o.id}</p>
+                          <Link
+                            to={`/profile/orders/${o.id}`}
+                            className="text-sm font-bold hover:text-green-600 transition"
+                          >
+                            Order #{o.id}
+                          </Link>
                           <span
                             className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
-                              (o.payment_status === "paid" || o.status === "paid")
+                              o.payment_status === "paid" || o.status === "paid"
                                 ? "bg-green-100 text-green-800"
                                 : "bg-yellow-100 text-yellow-800"
                             }`}
@@ -539,11 +784,19 @@ export default function Profile() {
                         </p>
                       </div>
 
-                      <div className="text-right">
-                        <p className="text-xs uppercase text-stone-500">Order Total</p>
-                        <p className="text-lg font-bold text-green-600">
-                          ${Number(o.total).toFixed(2)}
-                        </p>
+                      <div className="text-right flex items-center gap-4">
+                        <div>
+                          <p className="text-xs uppercase text-stone-500">Order Total</p>
+                          <p className="text-lg font-bold text-green-600">
+                            ${Number(o.total).toFixed(2)}
+                          </p>
+                        </div>
+                        <Link
+                          to={`/profile/orders/${o.id}`}
+                          className="hidden sm:inline-block rounded-md border border-stone-300 px-3 py-1.5 text-xs font-semibold uppercase hover:bg-stone-50 transition"
+                        >
+                          Details
+                        </Link>
                       </div>
                     </div>
 
@@ -555,11 +808,11 @@ export default function Profile() {
                             <p className="font-bold uppercase text-black text-[11px] mb-1">
                               Shipping Address:
                             </p>
-                            <p>
+                            <p className="font-medium text-stone-800">
                               {[o.billing.first_name, o.billing.last_name].filter(Boolean).join(" ")}
                             </p>
                             <p>
-                              {[o.billing.address, o.billing.city, o.billing.postcode, o.billing.country].filter(Boolean).join(", ")}
+                              {[o.billing.address || o.billing.street, o.billing.city, o.billing.postcode || o.billing.zip, o.billing.country].filter(Boolean).join(", ")}
                             </p>
                             {(o.billing.phone || o.billing.email) && (
                               <p className="text-stone-400 mt-0.5">
@@ -603,7 +856,7 @@ export default function Profile() {
                               <div className="flex flex-wrap items-center gap-3 text-xs text-stone-500 mt-1">
                                 <span>Quantity: <b>{it.qty}</b></span>
                                 <span>Unit Price: <b>${Number(it.price).toFixed(2)}</b></span>
-                                <span>Subtotal: <b className="text-black">${(Number(it.price) * Number(it.qty)).toFixed(2)}</b></span>
+                                <span>Item Total: <b className="text-black">${(Number(it.price) * Number(it.qty)).toFixed(2)}</b></span>
                               </div>
                             </div>
                           </div>
@@ -616,15 +869,21 @@ export default function Profile() {
                       <div className="flex justify-between py-0.5">
                         <span>Items Subtotal:</span>
                         <span className="font-medium text-black">
-                          ${Number(o.subtotal || (Number(o.total) - Number(o.shipping_fee || 0))).toFixed(2)}
+                          ${Number(o.subtotal || (Number(o.total) - Number(o.shipping || o.shipping_fee || 0) - Number(o.tax || 0))).toFixed(2)}
                         </span>
                       </div>
                       <div className="flex justify-between py-0.5">
                         <span>Shipping Fee:</span>
                         <span className="font-medium text-black">
-                          {Number(o.shipping_fee || 0) === 0 ? "Free" : `$${Number(o.shipping_fee).toFixed(2)}`}
+                          {Number(o.shipping || o.shipping_fee || 0) === 0 ? "Free" : `$${Number(o.shipping || o.shipping_fee).toFixed(2)}`}
                         </span>
                       </div>
+                      {Number(o.tax || 0) > 0 && (
+                        <div className="flex justify-between py-0.5">
+                          <span>Estimated Tax:</span>
+                          <span className="font-medium text-black">${Number(o.tax).toFixed(2)}</span>
+                        </div>
+                      )}
                       {Number(o.discount || 0) > 0 && (
                         <div className="flex justify-between py-0.5 text-green-600">
                           <span>Discount:</span>
@@ -730,30 +989,298 @@ export default function Profile() {
 
             {/* MY ADDRESS */}
             {active === "My address" && (
-              <div className="max-w-2xl space-y-4 text-sm text-stone-600">
-                {orders.length > 0 && orders[0]?.billing?.address ? (
-                  <div className="rounded-xl border border-stone-200 p-5">
-                    <div className="flex items-center gap-2 mb-3">
+              <div className="max-w-2xl space-y-6">
+                <div className="flex items-center justify-between border-b border-stone-200 pb-3">
+                  <div>
+                    <h2 className="text-sm font-bold uppercase text-stone-800 flex items-center gap-2">
                       <MapPin size={16} className="text-green-600" />
-                      <h3 className="font-bold text-black">Default Shipping Address</h3>
-                      <span className="rounded bg-green-100 px-2 py-0.5 text-[10px] font-bold uppercase text-green-700">
-                        From Latest Order
-                      </span>
-                    </div>
-                    <p className="font-semibold text-black">
-                      {[orders[0].billing.first_name, orders[0].billing.last_name].filter(Boolean).join(" ")}
+                      Saved Delivery Addresses ({addresses.length})
+                    </h2>
+                    <p className="text-xs text-stone-500 mt-0.5">
+                      Manage your delivery destinations for quick 1-click checkout.
                     </p>
-                    <p className="mt-1">{orders[0].billing.address}</p>
-                    <p>{[orders[0].billing.city, orders[0].billing.postcode, orders[0].billing.country].filter(Boolean).join(", ")}</p>
-                    {orders[0].billing.phone && <p className="mt-2 text-xs text-stone-500">Phone: {orders[0].billing.phone}</p>}
-                    {orders[0].billing.email && <p className="text-xs text-stone-500">Email: {orders[0].billing.email}</p>}
                   </div>
-                ) : (
-                  <div className="rounded-xl bg-neutral-50 p-6 text-stone-500">
-                    <p>No saved shipping address yet.</p>
+                  {!showAddressForm && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingAddressId(null);
+                        setAddressForm({
+                          full_name: `${form.first_name} ${form.last_name}`.trim(),
+                          phone: form.phone || "",
+                          address_line: "",
+                          city: "",
+                          state: "",
+                          postal_code: "",
+                          country: "United States",
+                          is_default: addresses.length === 0,
+                        });
+                        setShowAddressForm(true);
+                      }}
+                      className="flex items-center gap-1.5 rounded-lg bg-green-600 px-3.5 py-2 text-xs font-bold uppercase text-white hover:bg-green-700 transition"
+                    >
+                      <Plus size={14} /> Add Address
+                    </button>
+                  )}
+                </div>
+
+                {addressMsg.text && (
+                  <p
+                    className={`rounded-md px-3 py-2 text-xs ${
+                      addressMsg.type === "error"
+                        ? "bg-red-50 text-red-600"
+                        : "bg-green-50 text-green-600"
+                    }`}
+                  >
+                    {addressMsg.text}
+                  </p>
+                )}
+
+                {/* Add / Edit Address Form */}
+                {showAddressForm && (
+                  <form
+                    onSubmit={handleSaveAddress}
+                    className="rounded-xl border border-green-300 bg-green-50/40 p-5 space-y-4"
+                  >
+                    <div className="flex items-center justify-between border-b border-green-200/60 pb-2">
+                      <h3 className="text-sm font-bold text-stone-900">
+                        {editingAddressId ? "Edit Address" : "Add New Delivery Address"}
+                      </h3>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddressForm(false);
+                          setEditingAddressId(null);
+                        }}
+                        className="text-stone-400 hover:text-black"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-stone-700">
+                          Full Name <span className="text-red-600">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={addressForm.full_name}
+                          onChange={(e) => setAddressForm({ ...addressForm, full_name: e.target.value })}
+                          placeholder="e.g. John Doe"
+                          className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-green-600"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-stone-700">
+                          Phone Number <span className="text-red-600">*</span>
+                        </label>
+                        <input
+                          type="tel"
+                          required
+                          value={addressForm.phone}
+                          onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
+                          placeholder="e.g. +1 206-555-0199"
+                          className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-green-600"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-stone-700">
+                        Address Line / Street <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={addressForm.address_line}
+                        onChange={(e) => setAddressForm({ ...addressForm, address_line: e.target.value })}
+                        placeholder="House / Street / Apartment / Suite"
+                        className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-green-600"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-stone-700">
+                          City <span className="text-red-600">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={addressForm.city}
+                          onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
+                          placeholder="e.g. Seattle"
+                          className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-green-600"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-stone-700">
+                          State / Region
+                        </label>
+                        <input
+                          type="text"
+                          value={addressForm.state}
+                          onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
+                          placeholder="e.g. Washington"
+                          className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-green-600"
+                        />
+                      </div>
+                      <div>
+                        <label className="mb-1 block text-xs font-medium text-stone-700">
+                          Postal Code <span className="text-red-600">*</span>
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={addressForm.postal_code}
+                          onChange={(e) => setAddressForm({ ...addressForm, postal_code: e.target.value })}
+                          placeholder="e.g. 98101"
+                          className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-green-600"
+                        />
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="mb-1 block text-xs font-medium text-stone-700">
+                        Country <span className="text-red-600">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        required
+                        value={addressForm.country}
+                        onChange={(e) => setAddressForm({ ...addressForm, country: e.target.value })}
+                        className="w-full rounded-md border border-stone-300 bg-white px-3 py-2 text-sm outline-none focus:border-green-600"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-1">
+                      <input
+                        type="checkbox"
+                        id="is_default"
+                        checked={addressForm.is_default}
+                        onChange={(e) => setAddressForm({ ...addressForm, is_default: e.target.checked })}
+                        className="size-4 rounded text-green-600 focus:ring-green-500"
+                      />
+                      <label htmlFor="is_default" className="text-xs text-stone-700 cursor-pointer">
+                        Set as primary / default shipping address
+                      </label>
+                    </div>
+
+                    <div className="flex items-center gap-3 pt-2">
+                      <button
+                        type="submit"
+                        disabled={addressSaving}
+                        className="rounded-lg bg-green-600 px-6 py-2.5 text-xs font-bold uppercase text-white hover:bg-green-700 transition disabled:opacity-60"
+                      >
+                        {addressSaving ? "Saving…" : editingAddressId ? "Update Address" : "Save Address"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowAddressForm(false);
+                          setEditingAddressId(null);
+                        }}
+                        className="rounded-lg border border-stone-300 px-4 py-2.5 text-xs font-medium text-stone-600 hover:bg-stone-50"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {addressLoading && (
+                  <RovadoLoadingScreen message="Loading saved addresses..." fullScreen={false} />
+                )}
+
+                {/* Addresses list */}
+                {!addressLoading && addresses.length === 0 && !showAddressForm && (
+                  <div className="rounded-xl bg-neutral-50 p-8 text-center text-stone-500">
+                    <MapPin size={32} className="mx-auto text-stone-300 mb-2" />
+                    <p className="font-medium text-sm text-black">No saved addresses yet.</p>
                     <p className="text-xs text-stone-400 mt-1">
-                      Your shipping address is automatically saved when you place an order.
+                      Save your shipping address now to speed up future checkout orders.
                     </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEditingAddressId(null);
+                        setAddressForm({
+                          full_name: `${form.first_name} ${form.last_name}`.trim(),
+                          phone: form.phone || "",
+                          address_line: "",
+                          city: "",
+                          state: "",
+                          postal_code: "",
+                          country: "United States",
+                          is_default: true,
+                        });
+                        setShowAddressForm(true);
+                      }}
+                      className="mt-4 rounded-lg bg-green-600 px-4 py-2 text-xs font-bold uppercase text-white hover:bg-green-700"
+                    >
+                      Add Address
+                    </button>
+                  </div>
+                )}
+
+                {!addressLoading && addresses.length > 0 && (
+                  <div className="grid grid-cols-1 gap-4">
+                    {addresses.map((addr) => (
+                      <div
+                        key={addr.id}
+                        className={`rounded-xl border p-5 transition ${
+                          addr.is_default
+                            ? "border-green-600 bg-green-50/20 shadow-sm"
+                            : "border-stone-200 bg-white"
+                        }`}
+                      >
+                        <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-sm text-black">{addr.full_name}</span>
+                            {addr.is_default && (
+                              <span className="rounded bg-green-100 px-2 py-0.5 text-[10px] font-bold uppercase text-green-700">
+                                Default
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {!addr.is_default && (
+                              <button
+                                type="button"
+                                onClick={() => handleSetDefaultAddress(addr.id)}
+                                className="text-[11px] font-semibold text-stone-500 hover:text-green-600"
+                              >
+                                Set as Default
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleEditAddress(addr)}
+                              className="flex items-center gap-1 rounded border border-stone-200 px-2 py-1 text-[11px] font-medium text-stone-600 hover:text-black"
+                            >
+                              <Edit2 size={11} /> Edit
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteAddress(addr.id)}
+                              className="flex items-center gap-1 rounded border border-stone-200 px-2 py-1 text-[11px] font-medium text-red-600 hover:bg-red-50"
+                            >
+                              <Trash2 size={11} /> Delete
+                            </button>
+                          </div>
+                        </div>
+
+                        <p className="text-sm text-stone-700">{addr.address_line}</p>
+                        <p className="text-sm text-stone-700">
+                          {[addr.city, addr.state, addr.postal_code, addr.country].filter(Boolean).join(", ")}
+                        </p>
+                        {addr.phone && (
+                          <p className="mt-1 text-xs text-stone-400">Phone: {addr.phone}</p>
+                        )}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -801,7 +1328,7 @@ export default function Profile() {
                 <button
                   onClick={handleChangePassword}
                   disabled={pwdLoading}
-                  className="rounded-xl bg-green-600 px-8 py-4 text-xs font-medium uppercase text-white disabled:opacity-60"
+                  className="rounded-xl bg-green-600 px-8 py-4 text-xs font-medium uppercase text-white hover:bg-green-700 transition disabled:opacity-60"
                 >
                   {pwdLoading ? "Updating…" : "Update Password"}
                 </button>

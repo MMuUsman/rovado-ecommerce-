@@ -11,7 +11,7 @@ import {
 import { Header, PromoBar, Breadcrumb, PageShell } from "../components/Layout";
 import { ProductGridCard, StarRating } from "../components/Product";
 import { supabase } from "../services/supabaseClient";
-import { useLoading } from "../context/LoadingContext";
+import { useLoading, RovadoLoadingScreen } from "../context/LoadingContext";
 
 const heroBanner = {
   image: "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=864&q=80",
@@ -424,11 +424,11 @@ function Pagination({ currentPage, totalPages, onPageChange }) {
 export default function CategoryListing() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlCategory = searchParams.get("category") || "";
-  const urlSearch = searchParams.get("search") || "";
+  const urlSearch = searchParams.get("q") || searchParams.get("search") || "";
   const urlBrand = searchParams.get("brand") || "";
   const urlPage = parseInt(searchParams.get("page") || "1", 10) || 1;
 
-  // ✅ Brand state
+  // Brand state
   const [brandFilter, setBrandFilter] = useState(urlBrand);
 
   const [filtersOpen, setFiltersOpen] = useState(false);
@@ -436,10 +436,10 @@ export default function CategoryListing() {
   const [loading, setLoading] = useState(true);
   const { startLoading, stopLoading } = useLoading();
 
-  // ✅ Category filter from URL
+  // Category filter from URL
   const [categoryFilter, setCategoryFilter] = useState(urlCategory);
 
-  // ✅ Search from URL
+  // Search from URL
   const [searchQuery, setSearchQuery] = useState(urlSearch);
 
   // Filters
@@ -459,13 +459,28 @@ export default function CategoryListing() {
   const [currentPage, setCurrentPage] = useState(urlPage);
   const [itemsPerPage, setItemsPerPage] = useState(24);
 
-  // ✅ Sync URL params with state
+  // Sync URL params with state
   useEffect(() => {
     setCategoryFilter(urlCategory);
     setSearchQuery(urlSearch);
     setBrandFilter(urlBrand);
     setCurrentPage(urlPage);
   }, [urlCategory, urlSearch, urlBrand, urlPage]);
+
+  const handleSearchSubmit = (e) => {
+    if (e) e.preventDefault();
+    const newParams = new URLSearchParams(searchParams);
+    const q = searchQuery.trim();
+    if (q) {
+      newParams.set("q", q);
+      newParams.delete("search");
+    } else {
+      newParams.delete("q");
+      newParams.delete("search");
+    }
+    newParams.delete("page");
+    setSearchParams(newParams);
+  };
 
   const handlePageChange = (newPage) => {
     const pageNum = Math.max(1, Math.min(newPage, totalPages));
@@ -729,7 +744,7 @@ const otherProducts = filteredProducts.filter(
       <Breadcrumb
         items={[
           { label: "Home", href: "/" },
-          { label: "Shop", href: "/category" },
+          { label: "Search", href: "/search" },
           { label: pageTitle },
         ]}
       />
@@ -818,7 +833,7 @@ const otherProducts = filteredProducts.filter(
             <h2 className="text-lg font-bold uppercase">{pageTitle}</h2>
             {(categoryFilter || brandFilter) && (
   <Link
-    to="/category"
+    to="/search"
     className="text-xs text-green-600 hover:underline"
   >
     Clear filter ×
@@ -828,8 +843,10 @@ const otherProducts = filteredProducts.filter(
 
           {/* Search box */}
           <div className="mb-4">
-            <div className="flex items-center gap-2 rounded-lg border border-stone-300 px-3 py-2">
-              <Search size={16} className="text-stone-400" />
+            <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 rounded-lg border border-stone-300 px-3 py-2">
+              <button type="submit" aria-label="Search">
+                <Search size={16} className="text-stone-400 hover:text-green-600 transition" />
+              </button>
               <input
                 type="text"
                 value={searchQuery}
@@ -840,7 +857,7 @@ const otherProducts = filteredProducts.filter(
                 placeholder="Search products..."
                 className="flex-1 bg-transparent text-sm outline-none"
               />
-            </div>
+            </form>
           </div>
 
           {/* Results header */}
@@ -892,18 +909,18 @@ const otherProducts = filteredProducts.filter(
           </div>
 
           {loading && (
-            <p className="py-10 text-center text-sm text-stone-500">Loading products…</p>
+            <RovadoLoadingScreen message="Searching Store..." fullScreen={false} />
           )}
 
           {!loading && filteredProducts.length === 0 && (
             <div className="py-10 text-center">
-              <p className="text-sm text-stone-500">No products match your filters.</p>
+              <p className="text-sm text-stone-500">No products match your search or filters.</p>
               <button
-  onClick={onReset}
-  className="mt-2 text-green-600 hover:underline"
->
-  Reset filters
-</button>
+                onClick={onReset}
+                className="mt-2 text-green-600 hover:underline"
+              >
+                Reset filters
+              </button>
             </div>
           )}
 
@@ -912,7 +929,9 @@ const otherProducts = filteredProducts.filter(
               <div>
                 <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
                   {paginatedProducts.map((p) => (
-                    <ProductGridCard key={p.id} product={p} />
+                    <div key={p.id} className="card-entrance">
+                      <ProductGridCard product={p} />
+                    </div>
                   ))}
                 </div>
               </div>
