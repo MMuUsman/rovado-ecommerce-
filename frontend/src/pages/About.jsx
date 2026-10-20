@@ -109,12 +109,12 @@ function ConnectSection() {
             creative entrepreneurs start, manage & scale their businesses.
           </p>
 
-          <a
-            href="#"
+          <Link
+            to="/cellphones"
             className="mt-8 inline-flex items-center gap-2 rounded-xl bg-green-600 px-5 py-3 text-xs font-medium uppercase text-white transition hover:bg-green-700"
           >
-            <Play size={12} /> Our Showreel
-          </a>
+            <Play size={12} /> Explore Products
+          </Link>
         </div>
       </div>
     </section>

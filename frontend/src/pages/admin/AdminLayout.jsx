@@ -24,11 +24,13 @@ export default function AdminLayout() {
       {/* Sidebar */}
       <aside className="hidden w-64 flex-col bg-neutral-900 text-white lg:flex">
         <div className="border-b border-neutral-700 p-5">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="grid size-9 place-items-center rounded-lg bg-green-600 font-bold">
-              R
-            </span>
-            <span className="font-bold uppercase">Rovado Admin</span>
+          <Link to="/" className="flex items-center gap-2.5">
+            <img
+              src="/Rovadologo.jpg"
+              alt="Rovado Logo"
+              className="h-8 w-auto rounded object-contain bg-white p-0.5"
+            />
+            <span className="font-bold uppercase tracking-wider text-sm">Rovado Admin</span>
           </Link>
         </div>
 
@@ -82,8 +84,15 @@ export default function AdminLayout() {
       {/* Mobile top bar */}
       <div className="flex flex-1 flex-col">
         <header className="flex items-center justify-between bg-white px-4 py-3 lg:hidden">
-          <span className="font-bold uppercase">Admin</span>
-          <Link to="/" className="text-xs text-green-600">
+          <Link to="/" className="flex items-center gap-2">
+            <img
+              src="/Rovadologo.jpg"
+              alt="Rovado Logo"
+              className="h-6 w-auto object-contain"
+            />
+            <span className="font-bold uppercase text-xs">Admin</span>
+          </Link>
+          <Link to="/" className="text-xs font-semibold text-green-600">
             ← Store
           </Link>
         </header>

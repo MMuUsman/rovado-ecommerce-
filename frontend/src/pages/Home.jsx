@@ -275,7 +275,8 @@ const getFooterLink = (item) => {
   if (lower.includes("laptop") || lower.includes("pc")) return "/laptops";
   if (lower.includes("phone") || lower.includes("tablet")) return "/cellphones";
   if (lower.includes("about")) return "/about";
-  if (lower.includes("order") || lower.includes("account")) return "/profile";
+  if (lower.includes("track order") || lower.includes("order")) return "/profile/orders";
+  if (lower.includes("account")) return "/profile";
   if (lower.includes("cart")) return "/cart";
   if (
     lower.includes("contact") ||
@@ -352,7 +353,7 @@ export function TopBar() {
 
       <div className="flex items-center gap-6" ref={ref}>
         <Link to="/contact" className="hover:text-green-600">Sell on Rovado</Link>
-        <Link to="/profile" className="hover:text-green-600">Order Tracking</Link>
+        <Link to="/profile/orders" className="hover:text-green-600">Order Tracking</Link>
 
         <div className="relative">
           <button
@@ -437,7 +438,7 @@ function Header() {
   }
 
   const navItems = [
-    { label: "Homes", to: "/", dropdown: null },
+    { label: "Home", to: "/", dropdown: null },
     {
       label: "Pages",
       to: "#",
@@ -743,7 +744,7 @@ function PromoBar() {
     e.preventDefault();
     const q = search.trim();
     if (q) {
-      navigate(`/search?search=${encodeURIComponent(q)}`);
+      navigate(`/search?q=${encodeURIComponent(q)}`);
       setSearch("");
     } else {
       navigate("/search");

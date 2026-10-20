@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 import { Star, Trash2, Edit2, User } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
 import { useAuth } from "../context/AuthContext";
@@ -235,9 +236,9 @@ export default function ReviewsSection({ productId }) {
           {!user ? (
             <p className="rounded-lg bg-yellow-50 p-4 text-sm text-yellow-700">
               Please{" "}
-              <a href="/login" className="font-bold underline">
+              <Link to="/login" className="font-bold underline">
                 login
-              </a>{" "}
+              </Link>{" "}
               to write a review.
             </p>
           ) : (

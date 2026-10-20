@@ -482,6 +482,15 @@ export default function CategoryListing() {
     setSearchParams(newParams);
   };
 
+  const handleClearSearch = () => {
+    setSearchQuery("");
+    const newParams = new URLSearchParams(searchParams);
+    newParams.delete("q");
+    newParams.delete("search");
+    newParams.delete("page");
+    setSearchParams(newParams);
+  };
+
   const handlePageChange = (newPage) => {
     const pageNum = Math.max(1, Math.min(newPage, totalPages));
     setCurrentPage(pageNum);
@@ -582,22 +591,24 @@ export default function CategoryListing() {
   };
 
   const onReset = () => {
-  setSelectedBrands([]);
-  setSelectedRatings([]);
-  setMinPrice(0);
-  setMaxPrice(10000);
-  setAppliedMin(0);
-  setAppliedMax(10000);
-  setSelectedSizes([]);
-  setSelectedColors([]);
-  setSelectedMemory([]);
-  setSelectedConditions([]);
-  setCurrentPage(1);
-  setSortBy("default");
-  setSearchQuery("");
-  setBrandFilter("");       // ✅ Add
-  setCategoryFilter("");    // ✅ Add
-};
+    setSelectedBrands([]);
+    setSelectedRatings([]);
+    setMinPrice(0);
+    setMaxPrice(10000);
+    setAppliedMin(0);
+    setAppliedMax(10000);
+    setSelectedSizes([]);
+    setSelectedColors([]);
+    setSelectedMemory([]);
+    setSelectedConditions([]);
+    setCurrentPage(1);
+    setSortBy("default");
+    setSearchQuery("");
+    setBrandFilter("");
+    setCategoryFilter("");
+    const newParams = new URLSearchParams();
+    setSearchParams(newParams);
+  };
 
   const activeFiltersCount =
     selectedBrands.length +
@@ -635,23 +646,51 @@ if (categoryFilter && categoryFilter.toLowerCase() !== "all") {
   });
 }
 
-    // ✅ 2. SEARCH FILTER (Name, brand, category, specifications)
+    // ✅ 2. SEARCH FILTER (Name, brand, category, specifications, descriptions)
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase().trim();
-      list = list.filter(
-        (p) =>
-          (p.title || p.name || "").toLowerCase().includes(q) ||
-          (p.brand || "").toLowerCase().includes(q) ||
-          (p.category || "").toLowerCase().includes(q) ||
-          (p.processor || "").toLowerCase().includes(q) ||
-          (p.ram || "").toLowerCase().includes(q) ||
-          (p.storage || "").toLowerCase().includes(q) ||
-          (p.display || "").toLowerCase().includes(q) ||
-          (p.gpu || "").toLowerCase().includes(q) ||
-          (p.camera || "").toLowerCase().includes(q) ||
-          (p.operating_system || "").toLowerCase().includes(q) ||
-          (p.description || "").toLowerCase().includes(q)
-      );
+      const qTokens = q.split(/\s+/).filter(Boolean);
+
+      list = list.filter((p) => {
+        const title = (p.title || p.name || "").toLowerCase();
+        const brand = (p.brand || "").toLowerCase();
+        const category = (p.category || "").toLowerCase();
+        const description = (p.description || "").toLowerCase();
+        const shortDesc = (p.short_description || "").toLowerCase();
+        const sku = (p.sku || "").toLowerCase();
+        const processor = (p.processor || "").toLowerCase();
+        const ram = (p.ram || "").toLowerCase();
+        const storage = (p.storage || "").toLowerCase();
+        const display = (p.display || "").toLowerCase();
+        const gpu = (p.gpu || "").toLowerCase();
+        const camera = (p.camera || "").toLowerCase();
+        const os = (p.operating_system || "").toLowerCase();
+        const slug = (p.slug || "").toLowerCase();
+
+        const combined = `${title} ${brand} ${category} ${description} ${shortDesc} ${sku} ${processor} ${ram} ${storage} ${display} ${gpu} ${camera} ${os} ${slug}`;
+
+        // Exact full query substring match
+        if (combined.includes(q)) return true;
+
+        // Synonym mapping for laptops
+        if (
+          (q === "laptop" || q === "laptops") &&
+          (combined.includes("laptop") || category.includes("laptop") || category.includes("computer"))
+        ) {
+          return true;
+        }
+
+        // Synonym mapping for cellphones
+        if (
+          (q === "phone" || q === "phones" || q === "cellphone" || q === "cellphones" || q === "mobile") &&
+          (combined.includes("phone") || category.includes("cellphone") || category.includes("tablet"))
+        ) {
+          return true;
+        }
+
+        // All token match (e.g. "iPhone 16", "Dell XPS 15", "Samsung Galaxy")
+        return qTokens.every((token) => combined.includes(token));
+      });
     }
 
     // 3. Brand filter
@@ -731,12 +770,14 @@ const otherProducts = filteredProducts.filter(
   const showingFrom = filteredProducts.length === 0 ? 0 : (currentPage - 1) * itemsPerPage + 1;
   const showingTo = Math.min(currentPage * itemsPerPage, filteredProducts.length);
 
-  // ✅ Dynamic title
-  const pageTitle = brandFilter
-  ? `${brandFilter} Products`
-  : categoryFilter
-  ? CATEGORY_LABELS[categoryFilter] || categoryFilter.replace("-", " ")
-  : "All Products";
+  // ✅ Dynamic title & breadcrumb label
+  const pageTitle = searchQuery.trim()
+    ? `Search results for "${searchQuery.trim()}"`
+    : brandFilter
+    ? `${brandFilter} Products`
+    : categoryFilter
+    ? CATEGORY_LABELS[categoryFilter] || categoryFilter.replace("-", " ")
+    : "All Products";
 
   return (
     <PageShell>
@@ -745,16 +786,16 @@ const otherProducts = filteredProducts.filter(
         items={[
           { label: "Home", href: "/" },
           { label: "Search", href: "/search" },
-          { label: pageTitle },
+          ...(searchQuery.trim() ? [{ label: `"${searchQuery.trim()}"` }] : [{ label: pageTitle }]),
         ]}
       />
 
-      {/* Category hero + popular categories — sirf jab koi category filter na ho */}
-      {!categoryFilter && (
+      {/* Category hero + popular categories — only when no active search query or category filter */}
+      {!categoryFilter && !searchQuery.trim() && !brandFilter && (
         <section className="rounded-xl bg-white p-4 sm:p-6">
-            <h1 className="mb-4 text-lg font-bold uppercase">
-    {pageTitle || "All Products"}
-  </h1>
+          <h1 className="mb-4 text-lg font-bold uppercase">
+            {pageTitle || "All Products"}
+          </h1>
           <div className="relative mb-8 overflow-hidden rounded-xl">
             <img
               src={heroBanner.image}
@@ -766,25 +807,43 @@ const otherProducts = filteredProducts.filter(
                 {heroBanner.title}
               </h2>
               <p className="text-xs text-stone-500">{heroBanner.subtitle}</p>
-              <button className="mt-2 w-fit rounded-lg bg-black px-6 py-3 text-xs font-medium uppercase text-white">
+              <Link
+                to="/cellphones"
+                className="mt-2 inline-block w-fit rounded-lg bg-black px-6 py-3 text-xs font-medium uppercase text-white hover:bg-green-600 transition"
+              >
                 {heroBanner.cta}
-              </button>
+              </Link>
             </div>
           </div>
 
           <h2 className="mb-4 text-lg font-bold uppercase">Popular categories</h2>
-          <div className="grid grid-cols-2 gap-6 sm:grid-cols-3 lg:grid-cols-5">
-            {popularCategories.map((c) => (
-              <div key={c.name} className="flex flex-col items-center gap-2 text-center">
-                <img
-                  src="https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=51&q=80"
-                  alt={c.name}
-                  className="size-12 object-contain"
-                />
-                <p className="text-sm font-bold">{c.name}</p>
-                <p className="text-xs text-stone-500">{c.items} Items</p>
-              </div>
-            ))}
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+            {popularCategories.map((c) => {
+              const searchTerm = c.name.split(" ")[0].replace(/[()]/g, "");
+              return (
+                <button
+                  key={c.name}
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery(searchTerm);
+                    const newParams = new URLSearchParams(searchParams);
+                    newParams.set("q", searchTerm);
+                    newParams.delete("search");
+                    newParams.delete("page");
+                    setSearchParams(newParams);
+                  }}
+                  className="group flex flex-col items-center gap-2 rounded-xl p-3 text-center transition hover:bg-green-50/60 hover:shadow-sm"
+                >
+                  <img
+                    src="https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=51&q=80"
+                    alt={c.name}
+                    className="size-12 object-contain transition group-hover:scale-105"
+                  />
+                  <p className="text-sm font-bold text-stone-900 group-hover:text-green-600 transition">{c.name}</p>
+                  <p className="text-xs text-stone-500">{c.items} Items</p>
+                </button>
+              );
+            })}
           </div>
         </section>
       )}
@@ -831,32 +890,53 @@ const otherProducts = filteredProducts.filter(
           {/* Title + search */}
           <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
             <h2 className="text-lg font-bold uppercase">{pageTitle}</h2>
-            {(categoryFilter || brandFilter) && (
-  <Link
-    to="/search"
-    className="text-xs text-green-600 hover:underline"
-  >
-    Clear filter ×
-  </Link>
-)}
+            {(categoryFilter || brandFilter || searchQuery.trim()) && (
+              <button
+                type="button"
+                onClick={onReset}
+                className="text-xs font-semibold text-green-600 hover:underline"
+              >
+                Clear all filters ×
+              </button>
+            )}
           </div>
 
           {/* Search box */}
-          <div className="mb-4">
-            <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 rounded-lg border border-stone-300 px-3 py-2">
-              <button type="submit" aria-label="Search">
-                <Search size={16} className="text-stone-400 hover:text-green-600 transition" />
+          <div className="mb-6">
+            <form
+              onSubmit={handleSearchSubmit}
+              className="relative flex items-center gap-2 rounded-xl border border-stone-300 bg-white px-3.5 py-3 transition focus-within:border-green-600 focus-within:ring-2 focus-within:ring-green-600/20"
+            >
+              <button
+                type="submit"
+                aria-label="Submit search"
+                className="shrink-0 text-stone-400 hover:text-green-600 transition"
+              >
+                <Search size={18} />
               </button>
               <input
                 type="text"
                 value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                }}
-                placeholder="Search products..."
-                className="flex-1 bg-transparent text-sm outline-none"
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search products by title, brand, category, specs..."
+                className="min-w-0 flex-1 bg-transparent text-xs sm:text-sm outline-none placeholder:text-stone-400"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={handleClearSearch}
+                  aria-label="Clear search query"
+                  className="shrink-0 rounded-full p-1 text-stone-400 hover:bg-stone-100 hover:text-stone-700 transition"
+                >
+                  <X size={16} />
+                </button>
+              )}
+              <button
+                type="submit"
+                className="hidden sm:inline-block rounded-lg bg-green-600 px-5 py-2 text-xs font-bold uppercase tracking-wider text-white shadow-sm hover:bg-green-700 transition"
+              >
+                Search
+              </button>
             </form>
           </div>
 
@@ -913,21 +993,50 @@ const otherProducts = filteredProducts.filter(
           )}
 
           {!loading && filteredProducts.length === 0 && (
-            <div className="py-10 text-center">
-              <p className="text-sm text-stone-500">No products match your search or filters.</p>
-              <button
-                onClick={onReset}
-                className="mt-2 text-green-600 hover:underline"
-              >
-                Reset filters
-              </button>
+            <div className="rounded-xl bg-neutral-50 p-8 sm:p-12 text-center">
+              <div className="mx-auto mb-4 grid size-16 place-items-center rounded-full bg-stone-200/60 text-stone-400">
+                <Search size={32} />
+              </div>
+              <h3 className="text-base font-bold text-stone-900">
+                {searchQuery ? `No results found for "${searchQuery}"` : "No products match your filters"}
+              </h3>
+              <p className="mt-1 text-xs text-stone-500 max-w-md mx-auto">
+                We couldn&apos;t find any products matching your criteria. Try checking your spelling or clearing filters to explore our full tech inventory.
+              </p>
+              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+                <button
+                  type="button"
+                  onClick={onReset}
+                  className="rounded-lg bg-green-600 px-5 py-2.5 text-xs font-bold uppercase text-white shadow-sm hover:bg-green-700 transition"
+                >
+                  Clear Search &amp; Filters
+                </button>
+                <Link
+                  to="/cellphones"
+                  className="rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-xs font-bold uppercase text-stone-700 hover:bg-stone-50 transition"
+                >
+                  Browse Cellphones
+                </Link>
+                <Link
+                  to="/laptops"
+                  className="rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-xs font-bold uppercase text-stone-700 hover:bg-stone-50 transition"
+                >
+                  Browse Laptops
+                </Link>
+                <Link
+                  to="/"
+                  className="rounded-lg border border-stone-300 bg-white px-4 py-2.5 text-xs font-bold uppercase text-stone-700 hover:bg-stone-50 transition"
+                >
+                  Return Home
+                </Link>
+              </div>
             </div>
           )}
 
           {!loading && filteredProducts.length > 0 && (
             categoryFilter || brandFilter || searchQuery.trim() || activeFiltersCount > 0 || currentPage > 1 ? (
               <div>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+                <div className="grid grid-cols-2 gap-x-2.5 gap-y-6 sm:gap-x-4 sm:gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
                   {paginatedProducts.map((p) => (
                     <div key={p.id} className="card-entrance">
                       <ProductGridCard product={p} />
@@ -949,9 +1058,11 @@ const otherProducts = filteredProducts.filter(
                           {cellphonesProducts.length} products
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+                      <div className="grid grid-cols-2 gap-x-2.5 gap-y-6 sm:gap-x-4 sm:gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
                         {cellphonesProducts.map((p) => (
-                          <ProductGridCard key={p.id} product={p} />
+                          <div key={p.id} className="card-entrance">
+                            <ProductGridCard product={p} />
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -969,9 +1080,11 @@ const otherProducts = filteredProducts.filter(
                           {laptopsProducts.length} products
                         </span>
                       </div>
-                      <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+                      <div className="grid grid-cols-2 gap-x-2.5 gap-y-6 sm:gap-x-4 sm:gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
                         {laptopsProducts.map((p) => (
-                          <ProductGridCard key={p.id} product={p} />
+                          <div key={p.id} className="card-entrance">
+                            <ProductGridCard product={p} />
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -986,9 +1099,11 @@ const otherProducts = filteredProducts.filter(
                         {otherProducts.length} products
                       </span>
                     </div>
-                    <div className="grid grid-cols-2 gap-x-4 gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
+                    <div className="grid grid-cols-2 gap-x-2.5 gap-y-6 sm:gap-x-4 sm:gap-y-8 sm:grid-cols-3 lg:grid-cols-4">
                       {otherProducts.map((p) => (
-                        <ProductGridCard key={p.id} product={p} />
+                        <div key={p.id} className="card-entrance">
+                          <ProductGridCard product={p} />
+                        </div>
                       ))}
                     </div>
                   </div>

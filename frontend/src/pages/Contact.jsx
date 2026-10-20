@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import {
   Facebook,
   Twitter,
@@ -342,9 +343,9 @@ function ContactForm() {
         <span className="text-black">
           I want to receive news and updates once in a while. By submitting, I'm
           agreed to the{" "}
-          <a href="#" className="text-green-600 underline">
+          <Link to="/about" className="text-green-600 underline">
             Terms &amp; Conditions
-          </a>
+          </Link>
         </span>
       </label>
 

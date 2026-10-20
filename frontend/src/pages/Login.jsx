@@ -79,9 +79,9 @@ export default function Login() {
             </div>
           </div>
 
-          <a href="#" className="mt-3 block text-xs text-neutral-400 underline">
+          <Link to="/contact" className="mt-3 block text-xs text-neutral-400 hover:text-green-600 underline">
             Forget Password ?
-          </a>
+          </Link>
 
           <button
             type="submit"

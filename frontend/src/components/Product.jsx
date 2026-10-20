@@ -46,7 +46,7 @@ export function ProductCard({ product }) {
   return (
     <Link
       to={`/product/${product.id}`}
-      className="group relative flex w-full shrink-0 flex-col rounded-lg p-4 snap-start sm:w-56 transition hover:shadow-md"
+      className="group relative flex w-full shrink-0 flex-col rounded-lg p-2.5 sm:p-4 snap-start sm:w-56 transition hover:shadow-md"
     >
       <div className="relative mb-3 aspect-square w-full overflow-hidden rounded-md bg-neutral-100">
         <img
@@ -106,7 +106,7 @@ export function ProductGridCard({ product }) {
   return (
     <Link
       to={`/product/${product.id}`}
-      className="group relative flex flex-col rounded-lg p-4 transition hover:shadow-md"
+      className="group relative flex flex-col rounded-lg p-2.5 sm:p-4 transition hover:shadow-md"
     >
       <div className="relative mb-3 aspect-square w-full overflow-hidden rounded-md bg-neutral-100">
         <img
