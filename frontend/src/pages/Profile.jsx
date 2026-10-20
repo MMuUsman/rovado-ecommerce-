@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useLocation, useNavigate, useParams, Link } from "react-router-dom";
 import {
   ChevronRight,
@@ -65,7 +65,7 @@ function Avatar({ src, name, size = "lg" }) {
    Main Profile Component
 --------------------------------------------------------- */
 export default function Profile({ defaultTab }) {
-  const { user, profile, refreshProfile, signOut } = useAuth();
+  const { user, profile, refreshProfile, signOut, loading: authLoading } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const { orderId } = useParams();
@@ -91,6 +91,13 @@ export default function Profile({ defaultTab }) {
     }
   }, [location.pathname, defaultTab, orderId]);
 
+  // Protect route: Redirect to login if unauthenticated once auth finishes loading
+  useEffect(() => {
+    if (!authLoading && !user) {
+      navigate("/login", { state: { from: location.pathname }, replace: true });
+    }
+  }, [authLoading, user, location.pathname, navigate]);
+
   const { items: wishlistItems, removeFromWishlist } = useWishlist();
   const { addToCart } = useCart();
   const fileInputRef = useRef(null);
@@ -113,6 +120,7 @@ export default function Profile({ defaultTab }) {
   // Orders state
   const [orders, setOrders] = useState([]);
   const [ordersLoading, setOrdersLoading] = useState(false);
+  const [ordersError, setOrdersError] = useState(null);
 
   // Address book state
   const [addresses, setAddresses] = useState([]);
@@ -159,28 +167,87 @@ export default function Profile({ defaultTab }) {
   }, [user, profile]);
 
   // ---------------------------------------------------------
-  // Load orders
+  // Load orders (resilient query with relational + 2-step fallback)
   // ---------------------------------------------------------
-  useEffect(() => {
-    if (active !== "My order" || !user) return;
+  const fetchOrders = useCallback(async () => {
+    if (!user?.id) return;
 
     setOrdersLoading(true);
-    (async () => {
-      const { data, error } = await supabase
+    setOrdersError(null);
+
+    try {
+      // Step 1: Try direct relational join
+      const { data: relationalData, error: relationalErr } = await supabase
         .from("orders")
         .select("*, order_items(*)")
         .eq("user_id", user.id)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.warn("[profile] orders fetch:", error.message);
-        setOrders([]);
-      } else {
-        setOrders(data ?? []);
+      if (!relationalErr && Array.isArray(relationalData)) {
+        setOrders(relationalData);
+        setOrdersLoading(false);
+        return;
       }
+
+      console.warn("[profile] Relational order query failed, using two-step query:", relationalErr?.message);
+
+      // Step 2: Reliable two-step query
+      const { data: ordersData, error: ordersErr } = await supabase
+        .from("orders")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false });
+
+      if (ordersErr) {
+        console.error("[profile] orders query error:", ordersErr);
+        setOrdersError(ordersErr.message || "Failed to load orders from database.");
+        setOrders([]);
+        setOrdersLoading(false);
+        return;
+      }
+
+      if (!ordersData || ordersData.length === 0) {
+        setOrders([]);
+        setOrdersLoading(false);
+        return;
+      }
+
+      const orderIds = ordersData.map((o) => o.id);
+      const { data: itemsData, error: itemsErr } = await supabase
+        .from("order_items")
+        .select("*")
+        .in("order_id", orderIds);
+
+      if (itemsErr) {
+        console.warn("[profile] order_items fetch warning:", itemsErr);
+      }
+
+      const itemsByOrderId = {};
+      (itemsData || []).forEach((item) => {
+        if (!itemsByOrderId[item.order_id]) itemsByOrderId[item.order_id] = [];
+        itemsByOrderId[item.order_id].push(item);
+      });
+
+      const assembled = ordersData.map((order) => ({
+        ...order,
+        order_items: itemsByOrderId[order.id] || [],
+      }));
+
+      setOrders(assembled);
+    } catch (err) {
+      console.error("[profile] order fetch exception:", err);
+      setOrdersError(err.message || "An unexpected error occurred while loading orders.");
+      setOrders([]);
+    } finally {
       setOrdersLoading(false);
-    })();
-  }, [active, user]);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    if (active === "My order" && user?.id) {
+      fetchOrders();
+    }
+  }, [active, user?.id, fetchOrders]);
 
   // ---------------------------------------------------------
   // Load addresses
@@ -705,7 +772,21 @@ export default function Profile({ defaultTab }) {
                   <RovadoLoadingScreen message="Loading your orders..." fullScreen={false} />
                 )}
 
-                {!ordersLoading && orders.length === 0 && (
+                {ordersError && !ordersLoading && (
+                  <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center text-xs text-red-700">
+                    <p className="font-bold text-sm text-red-800 mb-1">Failed to load orders</p>
+                    <p className="mb-4">{ordersError}</p>
+                    <button
+                      type="button"
+                      onClick={fetchOrders}
+                      className="rounded-lg bg-red-600 px-4 py-2 text-white font-semibold hover:bg-red-700 transition"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                )}
+
+                {!ordersLoading && !ordersError && orders.length === 0 && (
                   <div className="rounded-xl bg-neutral-50 p-8 text-center text-sm text-stone-500">
                     <Package size={36} className="mx-auto mb-2 text-stone-300" />
                     <p className="font-medium text-black">You have no orders yet.</p>

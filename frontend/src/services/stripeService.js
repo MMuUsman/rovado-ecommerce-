@@ -127,14 +127,24 @@ export async function executeStripeSandboxCheckout({
     throw new Error(validation.error);
   }
 
-  // 2. Obtain current Supabase auth session token (if authenticated)
+  // 2. Resolve authenticated Supabase user authoritatively
+  let activeUser = user;
   let userToken = null;
   try {
-    const { data } = await supabase.auth.getSession();
-    userToken = data.session?.access_token || null;
+    const { data: sessionData } = await supabase.auth.getSession();
+    userToken = sessionData?.session?.access_token || null;
+    if (!activeUser?.id) {
+      activeUser = sessionData?.session?.user || null;
+    }
+    if (!activeUser?.id) {
+      const { data: userData } = await supabase.auth.getUser();
+      activeUser = userData?.user || null;
+    }
   } catch (err) {
     console.warn("[Stripe] Failed getting auth session:", err);
   }
+
+  const userId = activeUser?.id || null;
 
   // Calculate totals
   const subtotal = items.reduce((acc, i) => acc + Number(i.price) * Number(i.qty || 1), 0);
@@ -142,10 +152,8 @@ export async function executeStripeSandboxCheckout({
   const tax = subtotal * 0.02;
   const total = subtotal + shipping + tax;
 
-  // 3. Try backend checkout endpoint first (which encapsulates Stripe Sandbox processing + Supabase persistence)
+  // 3. Try backend checkout endpoint if reachable
   let backendResult = null;
-  let backendFailed = false;
-
   try {
     const headers = { "Content-Type": "application/json" };
     if (userToken) headers.Authorization = `Bearer ${userToken}`;
@@ -163,30 +171,21 @@ export async function executeStripeSandboxCheckout({
           cvc: validation.cvc,
           name: cardData.name || `${billing.first_name} ${billing.last_name}`,
         },
-        user: user ? { id: user.id, email: user.email } : null,
+        user: activeUser ? { id: activeUser.id, email: activeUser.email } : null,
       }),
     });
 
     if (res.ok) {
       backendResult = await res.json();
-    } else {
-      const errData = await res.json().catch(() => ({}));
-      if (errData.error) {
-        throw new Error(errData.error);
+      if (backendResult?.success && backendResult?.orderId) {
+        return backendResult;
       }
-      backendFailed = true;
     }
   } catch (netErr) {
-    console.warn("[Stripe] Backend checkout API call failed or not running, falling back to direct Supabase flow:", netErr.message);
-    backendFailed = true;
+    // Backend offline / not available on Vercel client — fallback to direct atomic Supabase RPC
   }
 
-  // If backend succeeded with an order, return it
-  if (backendResult?.success) {
-    return backendResult;
-  }
-
-  // 4. Fallback: Direct frontend Supabase integration if backend is offline
+  // 4. Direct Supabase Atomic RPC flow
   const mockPaymentIntentId = `pi_test_${Math.random().toString(36).substring(2, 10)}${Date.now()}`;
   const mockChargeId = `ch_test_${Math.random().toString(36).substring(2, 10)}${Date.now()}`;
 
@@ -213,46 +212,35 @@ export async function executeStripeSandboxCheckout({
     stripe_status: "paid",
   };
 
-  let savedOrder = null;
-  let savedItems = [];
-  const userId = user?.id || null;
+  const { data: rpcData, error: rpcErr } = await supabase.rpc("create_order_secure", {
+    p_user_id: userId,
+    p_items: items,
+    p_billing: enrichedBilling,
+    p_payment_method: "stripe",
+    p_notes: `Stripe Sandbox Payment Verified [ID: ${mockPaymentIntentId} | Card: ${validation.brand} *${validation.last4}]`,
+    p_transaction: transactionRecord,
+  });
 
-  try {
-    const { data: rpcData, error: rpcErr } = await supabase.rpc("create_order_secure", {
-      p_user_id: userId,
-      p_items: items,
-      p_billing: enrichedBilling,
-      p_payment_method: "stripe",
-      p_notes: `Stripe Sandbox Payment Verified [ID: ${mockPaymentIntentId} | Card: ${validation.brand} *${validation.last4}]`,
-      p_transaction: transactionRecord,
-    });
-
-    if (!rpcErr && rpcData?.success) {
-      savedOrder = rpcData.order;
-      savedItems = rpcData.items || [];
-    } else if (rpcErr) {
-      console.warn("[Stripe] Frontend create_order_secure fallback warning:", rpcErr.message);
-    }
-  } catch (directErr) {
-    console.error("[Stripe] Direct order RPC exception:", directErr);
+  if (rpcErr) {
+    console.error("[Stripe] create_order_secure failed:", rpcErr);
+    throw new Error(rpcErr.message || "Failed to create order in database.");
   }
+
+  if (!rpcData?.success || !rpcData?.order_id) {
+    throw new Error("Order creation failed in database. Please try again.");
+  }
+
+  const savedOrder = rpcData.order;
+  const savedItems = rpcData.items || [];
 
   return {
     success: true,
     message: "Payment successfully verified via Stripe Sandbox framework.",
-    orderId: savedOrder?.id || `ord_${Date.now()}`,
-    order: savedOrder || {
-      id: `ord_${Date.now()}`,
-      user_id: userId,
-      total,
-      status: "processing",
-      payment_method: "stripe",
-      billing: enrichedBilling,
-      created_at: new Date().toISOString(),
-    },
-    items: savedItems.length > 0 ? savedItems : items,
+    orderId: rpcData.order_id,
+    order: savedOrder,
+    items: savedItems,
     transaction: transactionRecord,
     receiptUrl: transactionRecord.receipt_url,
-    supabaseSynced: !!savedOrder?.id,
+    supabaseSynced: true,
   };
 }
