@@ -1695,7 +1695,7 @@ export default function Home() {
 
   if (loading && allProducts.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-200">
+      <div className="min-h-screen bg-gray-200 overflow-x-hidden">
         <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:gap-4 px-2 sm:px-4 lg:px-6 py-3 sm:py-4">
           <Header />
           <PromoBar />

@@ -25,6 +25,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 
 
 export function TopBar() {
@@ -149,14 +150,20 @@ const languages = ["Eng"];
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null);
   const [openCategories, setOpenCategories] = useState(true);
   const [openPages, setOpenPages] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const headerRef = useRef(null);
   const drawerRef = useRef(null);
   const closeButtonRef = useRef(null);
   const menuButtonRef = useRef(null);
   const location = useLocation();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const { count, subtotal } = useCart();
   const { count: wishlistCount } = useWishlist();
@@ -164,28 +171,61 @@ export function Header() {
 
   const cartTotal = (subtotal || 0).toFixed(2);
 
+  const handleOpenDrawer = () => {
+    setIsAnimating(true);
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => {
+        setOpen(true);
+      });
+    });
+  };
+
+  useEffect(() => {
+    if (!open) {
+      const timer = setTimeout(() => {
+        setIsAnimating(false);
+      }, 320);
+      return () => clearTimeout(timer);
+    } else {
+      setIsAnimating(true);
+    }
+  }, [open]);
+
   // Close drawer and dropdowns automatically when route changes
   useEffect(() => {
     setOpen(false);
     setOpenDropdown(null);
   }, [location.pathname, location.search]);
 
-  // Lock body scroll when drawer is open
+  // Lock body scroll cleanly when drawer is open
   useEffect(() => {
     if (open) {
-      const originalStyle = window.getComputedStyle(document.body).overflow;
+      const prevOverflow = document.body.style.overflow;
       document.body.style.overflow = "hidden";
-      setTimeout(() => {
+      const timer = setTimeout(() => {
         closeButtonRef.current?.focus();
       }, 50);
       return () => {
-        document.body.style.overflow = originalStyle;
+        document.body.style.overflow = prevOverflow;
+        clearTimeout(timer);
       };
     } else {
+      document.body.style.overflow = "";
       if (menuButtonRef.current && document.activeElement === closeButtonRef.current) {
         menuButtonRef.current.focus();
       }
     }
+  }, [open]);
+
+  // Close on desktop breakpoint resize
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth >= 1024 && open) {
+        setOpen(false);
+      }
+    };
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
   }, [open]);
 
   // Escape key listener for both desktop dropdown and mobile drawer
@@ -501,7 +541,7 @@ export function Header() {
             <button
               ref={menuButtonRef}
               type="button"
-              onClick={() => setOpen(true)}
+              onClick={handleOpenDrawer}
               aria-expanded={open}
               aria-controls="mobile-nav-drawer"
               aria-label="Open navigation menu"
@@ -514,27 +554,35 @@ export function Header() {
         </div>
       </header>
 
-      {/* ═══════ MOBILE & TABLET NAVIGATION DRAWER ═══════ */}
-      {/* Backdrop */}
-      <div
-        className={`fixed inset-0 z-50 bg-black/60 backdrop-blur-xs transition-opacity duration-300 lg:hidden ${
-          open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
-        }`}
-        onClick={() => setOpen(false)}
-        aria-hidden="true"
-      />
+      {/* ═══════ MOBILE & TABLET NAVIGATION DRAWER (PORTALED) ═══════ */}
+      {mounted && typeof document !== "undefined" && createPortal(
+        <div
+          className={`fixed inset-0 z-50 overflow-hidden lg:hidden transition-[visibility,opacity] duration-300 ease-out ${
+            open ? "pointer-events-auto visible opacity-100" : "pointer-events-none invisible opacity-0"
+          } ${!open && !isAnimating ? "hidden" : "flex"}`}
+          aria-hidden={!open}
+        >
+          {/* Backdrop */}
+          <div
+            className={`absolute inset-0 bg-black/60 backdrop-blur-xs transition-opacity duration-300 ease-out ${
+              open ? "opacity-100" : "opacity-0"
+            }`}
+            onClick={() => setOpen(false)}
+            aria-hidden="true"
+          />
 
-      {/* Slide-in Drawer Panel */}
-      <aside
-        id="mobile-nav-drawer"
-        ref={drawerRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Mobile Navigation Menu"
-        className={`fixed inset-y-0 right-0 z-50 flex w-[88vw] max-w-[360px] sm:max-w-[400px] flex-col bg-white shadow-2xl transition-transform duration-300 ease-out lg:hidden ${
-          open ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
+          {/* Slide-in Drawer Panel */}
+          <aside
+            id="mobile-nav-drawer"
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mobile Navigation Menu"
+            tabIndex={-1}
+            className={`absolute inset-y-0 right-0 flex w-[88vw] max-w-[360px] sm:max-w-[400px] flex-col bg-white shadow-2xl transition-transform duration-300 ease-out ${
+              open ? "translate-x-0" : "translate-x-full"
+            }`}
+          >
         {/* Drawer Header */}
         <div className="flex items-center justify-between border-b border-neutral-100 px-4 py-3.5 bg-neutral-50/80">
           <Link
@@ -799,7 +847,10 @@ export function Header() {
           </div>
         </div>
       </aside>
-    </>
+    </div>,
+    document.body
+  )}
+</>
   );
 }
 
