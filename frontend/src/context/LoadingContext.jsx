@@ -8,9 +8,15 @@ export function RovadoLoadingScreen({ message = "Loading...", fullScreen = true 
       <div className="relative mb-5 flex items-center justify-center">
         <div className="size-20 sm:size-24 rounded-2xl overflow-hidden bg-white shadow-lg ring-1 ring-black/5 animate-rovado-pulse flex items-center justify-center p-2">
           <img
-            src="/Rovadologo.jpg"
+            src="/rovado-emblem.png"
             alt="Rovado"
             className="w-full h-full object-contain"
+            onError={(e) => {
+              if (!e.target.dataset.fallback) {
+                e.target.dataset.fallback = "true";
+                e.target.src = "/Rovadologo.jpg";
+              }
+            }}
           />
         </div>
         <div className="absolute -inset-2 rounded-3xl bg-green-500/10 -z-10 blur-md animate-pulse" />
@@ -77,7 +83,17 @@ export function LoadingProvider({ children }) {
             <div className="h-full bg-green-600 animate-[pulse_1s_infinite] w-full" />
           </div>
           <div className="mx-auto mt-2 w-fit rounded-full bg-white/95 px-3 py-1 text-[11px] font-semibold text-green-700 shadow-md ring-1 ring-black/5 backdrop-blur-sm flex items-center gap-2">
-            <img src="/Rovadologo.jpg" alt="" className="size-3.5 object-contain" />
+            <img
+              src="/favicon-32x32.png"
+              alt=""
+              className="size-3.5 object-contain"
+              onError={(e) => {
+                if (!e.target.dataset.fallback) {
+                  e.target.dataset.fallback = "true";
+                  e.target.src = "/Rovadologo.jpg";
+                }
+              }}
+            />
             <span className="size-1.5 rounded-full bg-green-600 animate-ping" />
             <span>Rovado • Loading...</span>
           </div>

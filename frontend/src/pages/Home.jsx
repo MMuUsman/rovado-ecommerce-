@@ -20,6 +20,18 @@ import {
   Instagram,
   Youtube,
   Linkedin,
+  Laptop,
+  Monitor,
+  Smartphone,
+  Tablet,
+  Gamepad2,
+  Wifi,
+  Camera,
+  Headphones,
+  Printer,
+  HardDrive,
+  Plug,
+  Tag,
 } from "lucide-react";
 import { supabase } from "../services/supabaseClient";
 import { useCart } from "../context/CartContext";
@@ -237,18 +249,18 @@ function ProductRail({ title, tabs, products, viewAllHref = "/cellphones" }) {
 ========================================================= */
 
 const sidebarCategories = [
-  { name: "Laptops", icon: "💻" },
-  { name: "PC & Computers", icon: "🖥️" },
-  { name: "Cell Phones", icon: "📱" },
-  { name: "Tablets", icon: "📲" },
-  { name: "Gaming & VR", icon: "🎮" },
-  { name: "Networking", icon: "📡" },
-  { name: "Cameras", icon: "📷" },
-  { name: "Sounds", icon: "🎧" },
-  { name: "Office", icon: "📚" },
-  { name: "Storage, USB", icon: "💾" },
-  { name: "Accessories", icon: "🔌" },
-  { name: "Clearance", icon: "🏷️" },
+  { name: "Laptops", Icon: Laptop },
+  { name: "PC & Computers", Icon: Monitor },
+  { name: "Cell Phones", Icon: Smartphone },
+  { name: "Tablets", Icon: Tablet },
+  { name: "Gaming & VR", Icon: Gamepad2 },
+  { name: "Networking", Icon: Wifi },
+  { name: "Cameras", Icon: Camera },
+  { name: "Sounds", Icon: Headphones },
+  { name: "Office", Icon: Printer },
+  { name: "Storage, USB", Icon: HardDrive },
+  { name: "Accessories", Icon: Plug },
+  { name: "Clearance", Icon: Tag },
 ];
 
 const footerColumns = [
@@ -491,12 +503,17 @@ function Header() {
       <div className="flex items-center justify-between gap-2 sm:gap-4 px-3 sm:px-4 py-3 sm:py-4">
         {/* Logo */}
         <div className="flex items-center gap-3 sm:gap-6">
-          <Link to="/" onClick={scrollToTopSmooth}>
+          <Link to="/" onClick={scrollToTopSmooth} className="flex items-center">
             <img
-              src="/Rovadologo.jpg"
+              src="/rovado-logo.png"
               alt="Rovado logo"
-              className="h-8 sm:h-9 w-auto"
-              onError={(e) => { e.target.style.display = "none"; }}
+              className="h-8 sm:h-9 w-auto object-contain"
+              onError={(e) => {
+                if (!e.target.dataset.fallback) {
+                  e.target.dataset.fallback = "true";
+                  e.target.src = "/Rovadologo.jpg";
+                }
+              }}
             />
           </Link>
 
@@ -813,10 +830,10 @@ function Sidebar() {
           <li key={cat.name}>
             <Link
               to={getCategoryLink(cat.name)}
-              className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-neutral-50"
+              className="flex items-center justify-between rounded-md px-2 py-1.5 hover:bg-neutral-50 transition"
             >
               <span className="flex items-center gap-2">
-                <span className="text-sm">{cat.icon}</span>
+                <cat.Icon size={16} className="text-stone-600" />
                 <span className="capitalize">{cat.name}</span>
               </span>
               <ChevronRight size={11} className="text-stone-400" />
@@ -843,9 +860,10 @@ function MobileCategoryScroller() {
         <Link
           key={cat.name}
           to={getCategoryLink(cat.name)}
-          className="shrink-0 rounded-full bg-neutral-100 px-3.5 py-2 text-xs font-medium capitalize whitespace-nowrap"
+          className="flex shrink-0 items-center gap-1.5 rounded-full bg-neutral-100 px-3.5 py-2 text-xs font-medium capitalize whitespace-nowrap hover:bg-neutral-200 transition"
         >
-          {cat.icon} {cat.name}
+          <cat.Icon size={14} className="text-stone-600" />
+          <span>{cat.name}</span>
         </Link>
       ))}
     </div>
@@ -1002,16 +1020,16 @@ function SideDealCards({ products = [] }) {
 
 function FeaturedBrandsAndTopCategories() {
   const brands = [
-    { name: "Sony", logo: "https://upload.wikimedia.org/wikipedia/commons/c/cb/Sony_logo.svg" },
-    { name: "Asus", logo: "https://upload.wikimedia.org/wikipedia/commons/2/2e/ASUS_Logo.svg" },
-    { name: "Apple", logo: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" },
-    { name: "HP", logo: "https://upload.wikimedia.org/wikipedia/commons/a/ad/HP_logo_2012.svg" },
-    { name: "Dell", logo: "https://upload.wikimedia.org/wikipedia/commons/4/48/Dell_Logo.svg" },
-    { name: "Xiaomi", logo: "https://upload.wikimedia.org/wikipedia/commons/2/29/Xiaomi_logo.svg" },
-    { name: "LG", logo: "https://upload.wikimedia.org/wikipedia/commons/b/bf/LG_logo_%282015%29.svg" },
-    { name: "Lenovo", logo: "https://upload.wikimedia.org/wikipedia/commons/b/b8/Lenovo_logo_2015.svg" },
-    { name: "Acer", logo: "https://upload.wikimedia.org/wikipedia/commons/0/00/Acer_2011.svg" },
-    { name: "Nikon", logo: "https://upload.wikimedia.org/wikipedia/commons/9/9f/Nikon_logo.svg" },
+    { name: "Apple", logo: "/brands/apple.svg" },
+    { name: "Samsung", logo: "/brands/samsung.svg" },
+    { name: "Sony", logo: "/brands/sony.svg" },
+    { name: "Dell", logo: "/brands/dell.svg" },
+    { name: "HP", logo: "/brands/hp.svg" },
+    { name: "Asus", logo: "/brands/asus.svg" },
+    { name: "Xiaomi", logo: "/brands/xiaomi.svg" },
+    { name: "Lenovo", logo: "/brands/lenovo.svg" },
+    { name: "Acer", logo: "/brands/acer.svg" },
+    { name: "Nikon", logo: "/brands/nikon.svg" },
   ];
 
   const categories = [
@@ -1055,15 +1073,15 @@ function FeaturedBrandsAndTopCategories() {
               key={b.name}
               to={`/search?brand=${encodeURIComponent(b.name)}`}
               title={b.name}
-              className="group flex h-14 sm:h-16 items-center justify-center rounded-lg bg-neutral-50 p-1.5 sm:p-2 transition hover:bg-green-50 hover:shadow-sm"
+              className="group flex h-14 sm:h-16 items-center justify-center rounded-lg bg-neutral-50 p-2 sm:p-3 transition hover:bg-green-50 hover:shadow-sm"
             >
               <img
                 src={b.logo}
                 alt={b.name}
-                className="max-h-8 sm:max-h-10 w-full object-contain grayscale transition group-hover:grayscale-0"
+                className="max-h-7 sm:max-h-8 w-auto max-w-[80%] object-contain grayscale transition group-hover:grayscale-0"
                 onError={(e) => {
                   e.target.style.display = "none";
-                  e.target.nextSibling.style.display = "block";
+                  if (e.target.nextSibling) e.target.nextSibling.style.display = "block";
                 }}
               />
               <span className="hidden text-xs font-bold text-neutral-600">
@@ -1330,12 +1348,12 @@ function BrandNewForYou({ products = [] }) {
 
 function TopCellphonesSection({ products = [], viewAllHref = "/cellphones" }) {
   const miniCategories = [
-    { name: "iPhone (iOS)", items: products.filter((p) => p.title?.toLowerCase().includes("iphone")).length },
-    { name: "Android", items: products.filter((p) => /samsung|google|oneplus|xiaomi/i.test(p.title || "")).length },
-    { name: "5G Support", items: products.length },
-    { name: "Gaming", items: 0 },
-    { name: "Xiaomi", items: products.filter((p) => p.title?.toLowerCase().includes("xiaomi")).length },
-    { name: "Accessories", items: 0 },
+    { name: "iPhone (iOS)", items: products.filter((p) => p.title?.toLowerCase().includes("iphone")).length, icon: "/brands/apple.svg", isImg: true },
+    { name: "Android", items: products.filter((p) => /samsung|google|oneplus|xiaomi/i.test(p.title || "")).length, icon: "/brands/android.svg", isImg: true },
+    { name: "5G Support", items: products.length, icon: "/brands/5g.svg", isImg: true },
+    { name: "Gaming", items: 0, icon: Gamepad2, isImg: false },
+    { name: "Xiaomi", items: products.filter((p) => p.title?.toLowerCase().includes("xiaomi")).length, icon: "/brands/xiaomi.svg", isImg: true },
+    { name: "Accessories", items: 0, icon: Headphones, isImg: false },
   ];
 
   return (
@@ -1378,8 +1396,16 @@ function TopCellphonesSection({ products = [], viewAllHref = "/cellphones" }) {
               to={viewAllHref}
               className="flex items-center gap-2 sm:gap-3 transition hover:opacity-80"
             >
-              <div className="grid size-10 sm:size-12 shrink-0 place-items-center overflow-hidden rounded-full bg-green-50 text-base sm:text-lg">
-                📱
+              <div className="grid size-10 sm:size-12 shrink-0 place-items-center overflow-hidden rounded-full bg-green-50 p-2 text-stone-700">
+                {c.isImg ? (
+                  <img
+                    src={c.icon}
+                    alt={c.name}
+                    className="size-5 sm:size-6 object-contain"
+                  />
+                ) : (
+                  <c.icon size={18} className="text-green-700" />
+                )}
               </div>
               <div className="min-w-0">
                 <p className="text-xs sm:text-sm font-bold line-clamp-1">{c.name}</p>
@@ -1409,12 +1435,12 @@ function TopCellphonesSection({ products = [], viewAllHref = "/cellphones" }) {
 
 function LaptopsSection({ products = [], viewAllHref = "/laptops" }) {
   const miniCategories = [
-    { name: "Macbook", items: products.filter((p) => /macbook/i.test(p.title || "")).length },
-    { name: "Gaming", items: products.filter((p) => /rog|gaming/i.test(p.title || "")).length },
-    { name: "Dell", items: products.filter((p) => /dell/i.test(p.title || "")).length },
-    { name: "HP", items: products.filter((p) => /hp|spectre/i.test(p.title || "")).length },
-    { name: "Asus", items: products.filter((p) => /asus/i.test(p.title || "")).length },
-    { name: "Others", items: products.length },
+    { name: "Macbook", items: products.filter((p) => /macbook/i.test(p.title || "")).length, icon: "/brands/apple.svg", isImg: true },
+    { name: "Gaming", items: products.filter((p) => /rog|gaming/i.test(p.title || "")).length, icon: Gamepad2, isImg: false },
+    { name: "Dell", items: products.filter((p) => /dell/i.test(p.title || "")).length, icon: "/brands/dell.svg", isImg: true },
+    { name: "HP", items: products.filter((p) => /hp|spectre/i.test(p.title || "")).length, icon: "/brands/hp.svg", isImg: true },
+    { name: "Asus", items: products.filter((p) => /asus/i.test(p.title || "")).length, icon: "/brands/asus.svg", isImg: true },
+    { name: "Others", items: products.length, icon: Laptop, isImg: false },
   ];
 
   return (
@@ -1457,8 +1483,16 @@ function LaptopsSection({ products = [], viewAllHref = "/laptops" }) {
               to={viewAllHref}
               className="flex items-center gap-2 sm:gap-3 transition hover:opacity-80"
             >
-              <div className="grid size-10 sm:size-12 shrink-0 place-items-center overflow-hidden rounded-full bg-green-50 text-base sm:text-lg">
-                💻
+              <div className="grid size-10 sm:size-12 shrink-0 place-items-center overflow-hidden rounded-full bg-green-50 p-2 text-stone-700">
+                {c.isImg ? (
+                  <img
+                    src={c.icon}
+                    alt={c.name}
+                    className="size-5 sm:size-6 object-contain"
+                  />
+                ) : (
+                  <c.icon size={18} className="text-green-700" />
+                )}
               </div>
               <div className="min-w-0">
                 <p className="text-xs sm:text-sm font-bold line-clamp-1">{c.name}</p>
@@ -1781,10 +1815,24 @@ function Footer() {
             © 2026 <span className="font-bold text-black">usman.dev</span>. All Rights Reserved
           </p>
           <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
-            {["Visa", "Mastercard", "Stripe", "Amex", "Discover"].map((p) => (
-              <span key={p} className="rounded bg-neutral-100 px-2 py-1 text-[10px] text-neutral-500">
-                {p}
-              </span>
+            {[
+              { name: "Visa", icon: "/payments/visa.svg", h: "h-3.5" },
+              { name: "Mastercard", icon: "/payments/mastercard.svg", h: "h-5" },
+              { name: "Stripe", icon: "/payments/stripe.svg", h: "h-4" },
+              { name: "Amex", icon: "/payments/amex.svg", h: "h-4" },
+              { name: "Discover", icon: "/payments/discover.svg", h: "h-3.5" },
+            ].map((p) => (
+              <div
+                key={p.name}
+                title={p.name}
+                className="flex h-7 sm:h-8 min-w-[46px] items-center justify-center rounded-md border border-neutral-200 bg-white px-2 shadow-xs transition hover:border-neutral-300"
+              >
+                <img
+                  src={p.icon}
+                  alt={p.name}
+                  className={`${p.h} w-auto max-w-[48px] object-contain`}
+                />
+              </div>
             ))}
           </div>
           <Link to="/" className="flex items-center gap-1 text-sm text-blue-600">

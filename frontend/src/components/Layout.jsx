@@ -222,12 +222,17 @@ export function Header() {
       <div className="flex items-center justify-between gap-4 px-4 py-4">
         {/* LEFT: Logo + Nav */}
         <div className="flex items-center gap-6">
-          <Link to="/" onClick={scrollToTopSmooth}>
+          <Link to="/" onClick={scrollToTopSmooth} className="flex items-center">
             <img
-              src="/Rovadologo.jpg"
+              src="/rovado-logo.png"
               alt="Rovado logo"
-              className="h-9 w-auto"
-              onError={(e) => { e.target.style.display = "none"; }}
+              className="h-9 w-auto object-contain"
+              onError={(e) => {
+                if (!e.target.dataset.fallback) {
+                  e.target.dataset.fallback = "true";
+                  e.target.src = "/Rovadologo.jpg";
+                }
+              }}
             />
           </Link>
 
@@ -721,11 +726,25 @@ export function Footer() {
           <p className="text-sm text-stone-500">
             © 2026 <span className="font-bold text-black">usman.dev</span>. All Rights Reserved
           </p>
-          <div className="flex items-center gap-3">
-            {["Visa", "Mastercard", "Stripe", "Amex", "Discover"].map((p) => (
-              <span key={p} className="rounded bg-neutral-100 px-2 py-1 text-[10px] text-neutral-500">
-                {p}
-              </span>
+          <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3">
+            {[
+              { name: "Visa", icon: "/payments/visa.svg", h: "h-3.5" },
+              { name: "Mastercard", icon: "/payments/mastercard.svg", h: "h-5" },
+              { name: "Stripe", icon: "/payments/stripe.svg", h: "h-4" },
+              { name: "Amex", icon: "/payments/amex.svg", h: "h-4" },
+              { name: "Discover", icon: "/payments/discover.svg", h: "h-3.5" },
+            ].map((p) => (
+              <div
+                key={p.name}
+                title={p.name}
+                className="flex h-7 sm:h-8 min-w-[46px] items-center justify-center rounded-md border border-neutral-200 bg-white px-2 shadow-xs transition hover:border-neutral-300"
+              >
+                <img
+                  src={p.icon}
+                  alt={p.name}
+                  className={`${p.h} w-auto max-w-[48px] object-contain`}
+                />
+              </div>
             ))}
           </div>
           <Link to="/" className="flex items-center gap-1 text-sm text-blue-600">
