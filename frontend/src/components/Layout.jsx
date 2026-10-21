@@ -928,62 +928,47 @@ const footerColumns = [
   {
     title: "Top Categories",
     items: [
-      "Laptops",
-      "PC & Computers",
-      "Cell Phones",
-      "Tablets",
-      "Gaming & VR",
-      "Networks",
-      "Cameras",
-      "Sounds",
-      "Office",
+      { label: "Laptops", to: "/laptops" },
+      { label: "PC & Computers", to: "/laptops" },
+      { label: "Cell Phones", to: "/cellphones" },
+      { label: "Tablets", to: "/cellphones?sub=tablet" },
+      { label: "Gaming & VR", to: "/laptops?search=gaming" },
+      { label: "Networks", to: "/search?q=network" },
+      { label: "Cameras", to: "/search?q=camera" },
+      { label: "Sounds", to: "/search?q=sound" },
+      { label: "Office", to: "/search?q=office" },
     ],
   },
   {
     title: "Company",
-    items: ["About Rovado", "Contact", "Career", "Blog", "Sitemap", "Store Locations"],
-  },
-  {
-    title: "Help Center",
     items: [
-      "Customer Service",
-      "Policy",
-      "Terms & Conditions",
-      "Track Order",
-      "FAQs",
-      "My Account",
-      "Product Support",
+      { label: "About Rovado", to: "/about" },
+      { label: "Contact Us", to: "/contact" },
+      { label: "Store Locations", to: "/contact" },
+      { label: "All Products", to: "/search" },
     ],
   },
   {
-    title: "Partner",
-    items: ["Become Seller", "Affiliate", "Advertise", "Partnership"],
+    title: "Account & Orders",
+    items: [
+      { label: "My Account", to: "/profile" },
+      { label: "Track Order", to: "/profile/orders" },
+      { label: "My Addresses", to: "/profile/address" },
+      { label: "Shopping Cart", to: "/cart" },
+      { label: "Wishlist", to: "/wishlist" },
+    ],
+  },
+  {
+    title: "Quick Services",
+    items: [
+      { label: "Customer Support", to: "/contact" },
+      { label: "Sell on Rovado", to: "/contact" },
+      { label: "Best Sellers", to: "/cellphones?sub=bestseller" },
+      { label: "New Arrivals", to: "/laptops?sub=new" },
+      { label: "Deals of the Day", to: "/cellphones?sub=deals" },
+    ],
   },
 ];
-
-const getFooterLink = (item) => {
-  const lower = item.toLowerCase();
-  if (lower.includes("laptop") || lower.includes("pc")) return "/laptops";
-  if (lower.includes("phone") || lower.includes("tablet")) return "/cellphones";
-  if (lower.includes("about")) return "/about";
-  if (lower.includes("track order") || lower.includes("order")) return "/profile/orders";
-  if (lower.includes("account")) return "/profile";
-  if (lower.includes("cart")) return "/cart";
-  if (
-    lower.includes("contact") ||
-    lower.includes("service") ||
-    lower.includes("support") ||
-    lower.includes("policy") ||
-    lower.includes("terms") ||
-    lower.includes("faq") ||
-    lower.includes("career") ||
-    lower.includes("seller") ||
-    lower.includes("partner")
-  ) {
-    return "/contact";
-  }
-  return "/cellphones";
-};
 
 export function Footer() {
   return (
@@ -1059,9 +1044,9 @@ export function Footer() {
               <h4 className="mb-4 text-lg font-bold uppercase">{col.title}</h4>
               <ul className="space-y-2 text-sm capitalize text-stone-500">
                 {col.items.map((item) => (
-                  <li key={item}>
-                    <Link to={getFooterLink(item)} className="hover:text-green-600">
-                      {item}
+                  <li key={item.label}>
+                    <Link to={item.to} className="hover:text-green-600">
+                      {item.label}
                     </Link>
                   </li>
                 ))}

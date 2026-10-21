@@ -235,7 +235,15 @@ function ProductRail({ title, tabs, products, viewAllHref = "/cellphones" }) {
         </div>
         <div className="flex items-center gap-2">
           <Link
-            to={viewAllHref}
+            to={
+              active === "Best seller"
+                ? "/cellphones?sub=bestseller"
+                : active === "New in"
+                ? "/laptops?sub=new"
+                : active === "Popular"
+                ? "/cellphones?sub=popular"
+                : viewAllHref
+            }
             className="text-[10px] sm:text-xs uppercase text-stone-500 hover:text-green-600 font-medium"
           >
             View All
@@ -296,48 +304,68 @@ const sidebarCategories = [
   { name: "Clearance", Icon: Tag },
 ];
 
+const getCategoryLink = (catName) => {
+  const lower = (catName || "").toLowerCase();
+  if (lower.includes("pc") || lower.includes("computer")) return "/laptops";
+  if (lower.includes("laptop")) return "/laptops";
+  if (lower.includes("phone")) return "/cellphones";
+  if (lower.includes("tablet")) return "/cellphones?sub=tablet";
+  if (lower.includes("gaming")) return "/laptops?search=gaming";
+  if (lower.includes("network")) return "/search?q=network";
+  if (lower.includes("camera")) return "/search?q=camera";
+  if (lower.includes("sound") || lower.includes("audio")) return "/search?q=sound";
+  if (lower.includes("office")) return "/search?q=office";
+  if (lower.includes("storage") || lower.includes("usb")) return "/search?q=storage";
+  if (lower.includes("accessories")) return "/search?q=accessories";
+  if (lower.includes("clearance") || lower.includes("deal") || lower.includes("sale")) return "/cellphones?sub=deals";
+  return "/search";
+};
+
 const footerColumns = [
   {
     title: "Top Categories",
-    items: ["Laptops", "PC & Computers", "Cell Phones", "Tablets", "Gaming & VR", "Networks", "Cameras", "Sounds", "Office"],
+    items: [
+      { label: "Laptops", to: "/laptops" },
+      { label: "PC & Computers", to: "/laptops" },
+      { label: "Cell Phones", to: "/cellphones" },
+      { label: "Tablets", to: "/cellphones?sub=tablet" },
+      { label: "Gaming & VR", to: "/laptops?search=gaming" },
+      { label: "Networks", to: "/search?q=network" },
+      { label: "Cameras", to: "/search?q=camera" },
+      { label: "Sounds", to: "/search?q=sound" },
+      { label: "Office", to: "/search?q=office" },
+    ],
   },
   {
     title: "Company",
-    items: ["About Rovado", "Contact", "Career", "Blog", "Sitemap", "Store Locations"],
+    items: [
+      { label: "About Rovado", to: "/about" },
+      { label: "Contact Us", to: "/contact" },
+      { label: "Store Locations", to: "/contact" },
+      { label: "All Products", to: "/search" },
+    ],
   },
   {
-    title: "Help Center",
-    items: ["Customer Service", "Policy", "Terms & Conditions", "Track Order", "FAQs", "My Account", "Product Support"],
+    title: "Account & Orders",
+    items: [
+      { label: "My Account", to: "/profile" },
+      { label: "Track Order", to: "/profile/orders" },
+      { label: "My Addresses", to: "/profile/address" },
+      { label: "Shopping Cart", to: "/cart" },
+      { label: "Wishlist", to: "/wishlist" },
+    ],
   },
   {
-    title: "Partner",
-    items: ["Become Seller", "Affiliate", "Advertise", "Partnership"],
+    title: "Quick Services",
+    items: [
+      { label: "Customer Support", to: "/contact" },
+      { label: "Sell on Rovado", to: "/contact" },
+      { label: "Best Sellers", to: "/cellphones?sub=bestseller" },
+      { label: "New Arrivals", to: "/laptops?sub=new" },
+      { label: "Deals of the Day", to: "/cellphones?sub=deals" },
+    ],
   },
 ];
-
-const getFooterLink = (item) => {
-  const lower = item.toLowerCase();
-  if (lower.includes("laptop") || lower.includes("pc")) return "/laptops";
-  if (lower.includes("phone") || lower.includes("tablet")) return "/cellphones";
-  if (lower.includes("about")) return "/about";
-  if (lower.includes("track order") || lower.includes("order")) return "/profile/orders";
-  if (lower.includes("account")) return "/profile";
-  if (lower.includes("cart")) return "/cart";
-  if (
-    lower.includes("contact") ||
-    lower.includes("service") ||
-    lower.includes("support") ||
-    lower.includes("policy") ||
-    lower.includes("terms") ||
-    lower.includes("faq") ||
-    lower.includes("career") ||
-    lower.includes("seller") ||
-    lower.includes("partner")
-  ) {
-    return "/contact";
-  }
-  return "/cellphones";
-};
 
 
 /* =========================================================
@@ -402,14 +430,6 @@ function PromoBar() {
 ========================================================= */
 
 function Sidebar() {
-  const getCategoryLink = (catName) => {
-    const lower = (catName || "").toLowerCase();
-    if (lower.includes("laptop") || lower.includes("pc") || lower.includes("gaming") || lower.includes("office") || lower.includes("storage")) {
-      return "/laptops";
-    }
-    return "/cellphones";
-  };
-
   return (
     <aside className="hidden shrink-0 self-start rounded-xl bg-white p-4 lg:block lg:w-64">
       <div className="mb-3 flex items-center gap-2 border-b border-neutral-100 pb-3">
@@ -437,14 +457,6 @@ function Sidebar() {
 }
 
 function MobileCategoryScroller() {
-  const getCategoryLink = (catName) => {
-    const lower = (catName || "").toLowerCase();
-    if (lower.includes("laptop") || lower.includes("pc") || lower.includes("gaming") || lower.includes("office") || lower.includes("storage")) {
-      return "/laptops";
-    }
-    return "/cellphones";
-  };
-
   return (
     <div className="flex gap-2 overflow-x-auto rounded-xl bg-white p-3 lg:hidden [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       {sidebarCategories.map((cat) => (
@@ -513,7 +525,7 @@ function HeroCarousel({ products = [] }) {
             </p>
           )}
           <Link
-            to={slide.productId ? `/product/${slide.productId}` : "/cellphones"}
+            to={slide.productId ? `/product/${slide.productId}` : "/search"}
             className={`mt-1 sm:mt-2 w-fit rounded-lg px-4 sm:px-6 py-2 text-[11px] sm:text-xs font-medium uppercase ${slide.ctaStyle}`}
           >
             {slide.cta}
@@ -652,7 +664,7 @@ function FeaturedBrandsAndTopCategories() {
       <div className="rounded-xl bg-white p-3 sm:p-6">
         <div className="mb-4 sm:mb-6 flex items-center justify-between">
           <h2 className="text-base sm:text-lg font-bold uppercase">Featured Brands</h2>
-          <Link to="/cellphones" className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600">
+          <Link to="/search" className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600">
             View All <ChevronRight size={12} />
           </Link>
         </div>
@@ -687,7 +699,7 @@ function FeaturedBrandsAndTopCategories() {
       <div className="rounded-xl bg-white p-3 sm:p-6">
         <div className="mb-4 sm:mb-6 flex items-center justify-between">
           <h2 className="text-base sm:text-lg font-bold uppercase">Top Categories</h2>
-          <Link to="/laptops" className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600">
+          <Link to="/search" className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600">
             View All <ChevronRight size={12} />
           </Link>
         </div>
@@ -774,7 +786,7 @@ function DealsOfTheDay({ products = [] }) {
             Deals of the day
           </h2>
           <div className="flex items-center gap-3">
-            <Link to="/cellphones" className="flex items-center gap-1 text-xs text-white hover:underline">
+            <Link to="/cellphones?sub=deals" className="flex items-center gap-1 text-xs text-white hover:underline">
               View All <ChevronRight size={12} />
             </Link>
             {dealList.length > 1 && (
@@ -984,12 +996,12 @@ function BrandNewForYou({ products = [] }) {
 
 function TopCellphonesSection({ products = [], viewAllHref = "/cellphones" }) {
   const miniCategories = [
-    { name: "iPhone (iOS)", items: products.filter((p) => p.title?.toLowerCase().includes("iphone")).length, icon: "/brands/apple.svg", isImg: true },
-    { name: "Android", items: products.filter((p) => /samsung|google|oneplus|xiaomi/i.test(p.title || "")).length, icon: "/brands/android.svg", isImg: true },
-    { name: "5G Support", items: products.length, icon: "/brands/5g.svg", isImg: true },
-    { name: "Gaming", items: 0, icon: Gamepad2, isImg: false },
-    { name: "Xiaomi", items: products.filter((p) => p.title?.toLowerCase().includes("xiaomi")).length, icon: "/brands/xiaomi.svg", isImg: true },
-    { name: "Accessories", items: 0, icon: Headphones, isImg: false },
+    { name: "iPhone (iOS)", items: products.filter((p) => p.title?.toLowerCase().includes("iphone")).length, icon: "/brands/apple.svg", isImg: true, href: "/cellphones?search=iPhone" },
+    { name: "Android", items: products.filter((p) => /samsung|google|oneplus|xiaomi/i.test(p.title || "")).length, icon: "/brands/android.svg", isImg: true, href: "/cellphones?search=Android" },
+    { name: "5G Support", items: products.length, icon: "/brands/5g.svg", isImg: true, href: "/cellphones?search=5G" },
+    { name: "Gaming", items: products.filter((p) => /gaming|rog/i.test(p.title || "")).length, icon: Gamepad2, isImg: false, href: "/cellphones?search=gaming" },
+    { name: "Xiaomi", items: products.filter((p) => p.title?.toLowerCase().includes("xiaomi")).length, icon: "/brands/xiaomi.svg", isImg: true, href: "/cellphones?brand=Xiaomi" },
+    { name: "Accessories", items: 0, icon: Headphones, isImg: false, href: "/cellphones?search=accessories" },
   ];
 
   const scrollCellphones = (dir) => {
@@ -1052,7 +1064,7 @@ function TopCellphonesSection({ products = [], viewAllHref = "/cellphones" }) {
           {miniCategories.map((c) => (
             <Link
               key={c.name}
-              to={viewAllHref}
+              to={c.href || viewAllHref}
               className="flex items-center gap-2 sm:gap-3 transition hover:opacity-80"
             >
               <div className="grid size-10 sm:size-12 shrink-0 place-items-center overflow-hidden rounded-full bg-green-50 p-2 text-stone-700">
@@ -1097,12 +1109,12 @@ function TopCellphonesSection({ products = [], viewAllHref = "/cellphones" }) {
 
 function LaptopsSection({ products = [], viewAllHref = "/laptops" }) {
   const miniCategories = [
-    { name: "Macbook", items: products.filter((p) => /macbook/i.test(p.title || "")).length, icon: "/brands/apple.svg", isImg: true },
-    { name: "Gaming", items: products.filter((p) => /rog|gaming/i.test(p.title || "")).length, icon: Gamepad2, isImg: false },
-    { name: "Dell", items: products.filter((p) => /dell/i.test(p.title || "")).length, icon: "/brands/dell.svg", isImg: true },
-    { name: "HP", items: products.filter((p) => /hp|spectre/i.test(p.title || "")).length, icon: "/brands/hp.svg", isImg: true },
-    { name: "Asus", items: products.filter((p) => /asus/i.test(p.title || "")).length, icon: "/brands/asus.svg", isImg: true },
-    { name: "Others", items: products.length, icon: Laptop, isImg: false },
+    { name: "Macbook", items: products.filter((p) => /macbook/i.test(p.title || "")).length, icon: "/brands/apple.svg", isImg: true, href: "/laptops?brand=Apple" },
+    { name: "Gaming", items: products.filter((p) => /rog|gaming/i.test(p.title || "")).length, icon: Gamepad2, isImg: false, href: "/laptops?search=gaming" },
+    { name: "Dell", items: products.filter((p) => /dell/i.test(p.title || "")).length, icon: "/brands/dell.svg", isImg: true, href: "/laptops?brand=Dell" },
+    { name: "HP", items: products.filter((p) => /hp|spectre/i.test(p.title || "")).length, icon: "/brands/hp.svg", isImg: true, href: "/laptops?brand=HP" },
+    { name: "Asus", items: products.filter((p) => /asus/i.test(p.title || "")).length, icon: "/brands/asus.svg", isImg: true, href: "/laptops?brand=Asus" },
+    { name: "Others", items: products.length, icon: Laptop, isImg: false, href: "/laptops" },
   ];
 
   const scrollLaptops = (dir) => {
@@ -1165,7 +1177,7 @@ function LaptopsSection({ products = [], viewAllHref = "/laptops" }) {
           {miniCategories.map((c) => (
             <Link
               key={c.name}
-              to={viewAllHref}
+              to={c.href || viewAllHref}
               className="flex items-center gap-2 sm:gap-3 transition hover:opacity-80"
             >
               <div className="grid size-10 sm:size-12 shrink-0 place-items-center overflow-hidden rounded-full bg-green-50 p-2 text-stone-700">
@@ -1267,7 +1279,16 @@ function SmartCategorySection({ title, keywords, products = [] }) {
 
   const bannerImage = SECTION_BANNERS[title] || matchedProducts[0]?.image || FALLBACK_IMG;
   const isLaptopSection = keywords.some((k) => /laptop|pc|gaming|office|computer/i.test(k));
-  const categoryHref = isLaptopSection ? "/laptops" : "/cellphones";
+  let categoryHref = "/search";
+  if (title.toLowerCase().includes("audio") || title.toLowerCase().includes("camera")) {
+    categoryHref = "/search?q=audio";
+  } else if (title.toLowerCase().includes("gaming")) {
+    categoryHref = "/laptops?search=gaming";
+  } else if (title.toLowerCase().includes("office")) {
+    categoryHref = "/laptops?search=office";
+  } else {
+    categoryHref = isLaptopSection ? "/laptops" : "/cellphones";
+  }
 
   return (
     <section className="rounded-xl bg-white p-3 sm:p-6 shadow-xs border border-neutral-100 flex flex-col justify-between">
@@ -1293,10 +1314,13 @@ function SmartCategorySection({ title, keywords, products = [] }) {
         {categories.map((c) => {
           const isAsus = c.name.toLowerCase() === "asus";
           const resolvedImg = isAsus ? (CATEGORY_DEFAULT_IMAGES.ASUS || c.image) : (c.image || CATEGORY_DEFAULT_IMAGES[c.name] || FALLBACK_IMG);
+          const pillHref = title.toLowerCase().includes("audio") || title.toLowerCase().includes("camera")
+            ? `/search?q=${encodeURIComponent(c.name)}`
+            : `${categoryHref.split("?")[0]}?search=${encodeURIComponent(c.name)}`;
           return (
             <Link
               key={c.name}
-              to={`${categoryHref}?search=${encodeURIComponent(c.name)}`}
+              to={pillHref}
               className="group flex flex-col items-center gap-1.5 sm:gap-2 text-center transition hover:opacity-90 max-w-[140px]"
             >
               <div className="relative size-16 sm:size-20 lg:size-24 overflow-hidden rounded-full bg-neutral-100 ring-2 ring-neutral-200/70 shadow-sm transition group-hover:ring-green-500 group-hover:scale-105">
@@ -1339,7 +1363,7 @@ function SmartCategorySection({ title, keywords, products = [] }) {
 function TwoBanners() {
   return (
     <div className="grid grid-cols-1 gap-3 sm:gap-4 lg:grid-cols-2">
-      <Link to="/cellphones" className="relative block overflow-hidden rounded-xl">
+      <Link to="/about" className="relative block overflow-hidden rounded-xl">
         <img
           src="https://images.unsplash.com/photo-1554224155-1696413565d3?w=646&q=80"
           alt="Cashback"
@@ -1396,7 +1420,7 @@ function RecentlyViewed({ products = [] }) {
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base sm:text-lg font-bold uppercase">Your recently viewed</h2>
         <div className="flex items-center gap-2">
-          <Link to="/cellphones" className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600 font-medium">
+          <Link to="/search" className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600 font-medium">
             View All <ChevronRight size={12} />
           </Link>
           <button
@@ -1482,8 +1506,8 @@ function AboutBlurb() {
       <p className="mt-3 sm:mt-4 text-xs sm:text-sm leading-6 text-stone-500">
         Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla vitae posuere mi. Quisque iaculis dignissim scelerisque.
       </p>
-      <Link to="/cellphones" className="mt-4 flex items-center gap-1 text-xs hover:text-green-600">
-        View All <ChevronRight size={12} />
+      <Link to="/about" className="mt-4 flex items-center gap-1 text-xs font-semibold hover:text-green-600">
+        Read More <ChevronRight size={12} />
       </Link>
     </section>
   );
@@ -1530,9 +1554,9 @@ function Footer() {
               <h4 className="mb-3 sm:mb-4 text-base sm:text-lg font-bold uppercase">{col.title}</h4>
               <ul className="space-y-2 text-sm capitalize text-stone-500">
                 {col.items.map((item) => (
-                  <li key={item}>
-                    <Link to={getFooterLink(item)} className="hover:text-green-600">
-                      {item}
+                  <li key={item.label}>
+                    <Link to={item.to} className="hover:text-green-600">
+                      {item.label}
                     </Link>
                   </li>
                 ))}

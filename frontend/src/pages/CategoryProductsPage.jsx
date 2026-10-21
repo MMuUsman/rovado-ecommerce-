@@ -497,15 +497,16 @@ export default function CategoryProductsPage({
 }) {
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // ✅ URL se brand + subcategory + page read karo
+  // ✅ URL se brand + subcategory + search/query + page read karo
   const urlBrand = searchParams.get("brand") || "";
   const urlSub = searchParams.get("sub") || "";
+  const urlSearch = searchParams.get("search") || searchParams.get("q") || "";
   const urlPage = parseInt(searchParams.get("page") || "1", 10) || 1;
 
   const [allProducts, setAllProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const { startLoading, stopLoading } = useLoading();
-  const [activeCategory, setActiveCategory] = useState(urlSub || "all");
+  const [activeCategory, setActiveCategory] = useState(urlSub || urlSearch || "all");
   const [brandFilter, setBrandFilter] = useState(urlBrand);
   const [currentPage, setCurrentPage] = useState(urlPage);
   const [itemsPerPage, setItemsPerPage] = useState(24);
@@ -527,9 +528,9 @@ export default function CategoryProductsPage({
   /* ---------- Sync URL → state ---------- */
   useEffect(() => {
     setBrandFilter(urlBrand);
-    setActiveCategory(urlSub || "all");
+    setActiveCategory(urlSub || urlSearch || "all");
     setCurrentPage(urlPage);
-  }, [urlBrand, urlSub, urlPage]);
+  }, [urlBrand, urlSub, urlSearch, urlPage]);
 
   const handlePageChange = (newPage) => {
     const pageNum = Math.max(1, Math.min(newPage, totalPages));
@@ -677,13 +678,21 @@ export default function CategoryProductsPage({
       });
     }
 
-    // 2. Subcategory filter
+    // 2. Subcategory / query filter
     if (activeCategory !== "all") {
       const filter = activeCategory.toLowerCase();
-      list = list.filter((p) => {
-        const text = `${p.title || ""} ${p.brand || ""} ${p.category || ""}`.toLowerCase();
-        return text.includes(filter);
-      });
+      if (filter === "bestseller" || filter === "best seller" || filter === "best-seller") {
+        list = list.filter((p) => p.is_best_seller);
+      } else if (filter === "deals" || filter === "deal" || filter === "sale") {
+        list = list.filter((p) => p.is_deal || p.old_price != null || p.oldPrice != null);
+      } else if (filter === "new") {
+        list = list.filter((p) => p.is_new || p.isNew);
+      } else {
+        list = list.filter((p) => {
+          const text = `${p.title || ""} ${p.brand || ""} ${p.category || ""}`.toLowerCase();
+          return text.includes(filter);
+        });
+      }
     }
 
     // 3. Brand checkboxes
