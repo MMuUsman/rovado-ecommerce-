@@ -36,26 +36,20 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let mounted = true;
 
-    // Get initial session
+    // 1. Get initial session from Supabase
     supabase.auth.getSession().then(async ({ data: { session } }) => {
       if (!mounted) return;
       if (session?.user) {
         setUser(session.user);
         await fetchProfile(session.user.id);
       } else {
-        try {
-          const cached = localStorage.getItem("rovado_demo_user");
-          if (cached) {
-            const parsed = JSON.parse(cached);
-            setUser(parsed.user);
-            setProfile(parsed.profile);
-          }
-        } catch {}
+        setUser(null);
+        setProfile(null);
       }
       setLoading(false);
     });
 
-    // Listen for auth changes
+    // 2. Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
@@ -87,62 +81,110 @@ export function AuthProvider({ children }) {
     return res;
   };
 
- const signUp = async (email, password, fullName) => {
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: {
-      data: { full_name: fullName },
-    },
-  });
+  const signUp = async (email, password, fullName) => {
+    const redirectUrl = `${window.location.origin}/auth/callback`;
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: redirectUrl,
+        data: { full_name: fullName },
+      },
+    });
 
-  // Backup: manually profile upsert karo (agar trigger fail ho jaye)
-  if (!error && data?.user) {
-    try {
-      await supabase.from("profiles").upsert(
-        {
-          id: data.user.id,
-          email: data.user.email,
-          full_name: fullName || "",
-          role: "customer",
-        },
-        { onConflict: "id" }
-      );
-    } catch (e) {
-      console.warn("[signup] profile upsert backup failed:", e);
+    // Backup profile upsert
+    if (!error && data?.user) {
+      try {
+        await supabase.from("profiles").upsert(
+          {
+            id: data.user.id,
+            email: data.user.email,
+            full_name: fullName || "",
+            role: "customer",
+          },
+          { onConflict: "id" }
+        );
+      } catch (e) {
+        console.warn("[signup] profile upsert backup notice:", e);
+      }
     }
-  }
 
-  return { data, error };
-};
-
-  const signInDemo = () => {
-    const demoUser = {
-      id: "ff56c502-45c5-45cf-b870-d670996da211",
-      email: "clg.usman2000@gmail.com",
-      user_metadata: { full_name: "Usman (Store Customer)" },
-    };
-    const demoProf = {
-      id: demoUser.id,
-      email: demoUser.email,
-      full_name: "Usman",
-      role: "customer",
-    };
-    setUser(demoUser);
-    setProfile(demoProf);
-    try {
-      localStorage.setItem("rovado_demo_user", JSON.stringify({ user: demoUser, profile: demoProf }));
-    } catch (e) {
-      console.warn("Storage warning:", e);
-    }
-    return { data: { user: demoUser }, error: null };
+    return { data, error };
   };
 
-  const signOut = () => {
+  // 1-Click Demo Customer Login: Authenticates a real Supabase Auth session
+  // ensuring valid JWT token, auth.uid(), and strict database RLS access
+  const signInDemo = async () => {
+    setLoading(true);
+    const demoEmail = "demo.customer@rovado.com";
+    const demoPassword = "DemoCustomer123!";
+
+    let res = await supabase.auth.signInWithPassword({
+      email: demoEmail,
+      password: demoPassword,
+    });
+
+    if (res.error) {
+      // If demo account not registered yet, register and then sign in
+      const su = await supabase.auth.signUp({
+        email: demoEmail,
+        password: demoPassword,
+        options: {
+          data: { full_name: "Usman (Store Customer)" },
+        },
+      });
+
+      if (su.data?.user) {
+        res = await supabase.auth.signInWithPassword({
+          email: demoEmail,
+          password: demoPassword,
+        });
+      }
+    }
+
+    if (res.data?.user) {
+      setUser(res.data.user);
+      const prof = await fetchProfile(res.data.user.id);
+      setLoading(false);
+      return { ...res, profile: prof };
+    }
+
+    setLoading(false);
+    return res;
+  };
+
+  const signOut = async () => {
     try {
       localStorage.removeItem("rovado_demo_user");
     } catch {}
-    return supabase.auth.signOut();
+    const res = await supabase.auth.signOut();
+    setUser(null);
+    setProfile(null);
+    return res;
+  };
+
+  const resetPassword = (email) => {
+    const redirectUrl = `${window.location.origin}/reset-password`;
+    return supabase.auth.resetPasswordForEmail(email.trim(), {
+      redirectTo: redirectUrl,
+    });
+  };
+
+  const updatePassword = (newPassword) => {
+    return supabase.auth.updateUser({
+      password: newPassword,
+    });
+  };
+
+  const resendConfirmation = (email) => {
+    const redirectUrl = `${window.location.origin}/auth/callback`;
+    return supabase.auth.resend({
+      type: "signup",
+      email: email.trim(),
+      options: {
+        emailRedirectTo: redirectUrl,
+      },
+    });
   };
 
   const value = {
@@ -155,6 +197,9 @@ export function AuthProvider({ children }) {
     signInDemo,
     signUp,
     signOut,
+    resetPassword,
+    updatePassword,
+    resendConfirmation,
     refreshProfile: () => fetchProfile(user?.id),
   };
 

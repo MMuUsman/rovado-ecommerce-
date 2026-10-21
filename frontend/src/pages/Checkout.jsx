@@ -302,10 +302,18 @@ export default function Checkout() {
       // --- 2. Alternative Payment Methods (Cash on Delivery) ---
       setLoadingMessage("Placing order…");
 
-      const userId = user?.id || null;
+      let resolvedUserId = user?.id || null;
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData?.session?.user?.id) {
+          resolvedUserId = sessionData.session.user.id;
+        }
+      } catch (e) {
+        console.warn("[Checkout] session resolve notice:", e);
+      }
 
       const { data: rpcData, error: orderErr } = await supabase.rpc("create_order_secure", {
-        p_user_id: userId,
+        p_user_id: resolvedUserId,
         p_items: items,
         p_billing: billing,
         p_payment_method: payment,

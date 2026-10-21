@@ -82,14 +82,14 @@ export default function Profile({ defaultTab }) {
   const [active, setActive] = useState(getInitialTab);
 
   useEffect(() => {
-    if (orderId || location.pathname.includes("/orders")) {
+    if (orderId || location.pathname.includes("/orders") || location.state?.tab === "My order" || location.state?.orderSuccess) {
       setActive("My order");
-    } else if (location.pathname.includes("/address")) {
+    } else if (location.pathname.includes("/address") || location.state?.tab === "My address") {
       setActive("My address");
     } else if (defaultTab) {
       setActive(defaultTab);
     }
-  }, [location.pathname, defaultTab, orderId]);
+  }, [location.pathname, location.state, defaultTab, orderId]);
 
   // Protect route: Redirect to login if unauthenticated once auth finishes loading
   useEffect(() => {
