@@ -81,66 +81,94 @@ function Badge({ children, tone = "green" }) {
 function ProductCard({ product }) {
   const { image, badge, title, rating, reviews, price, oldPrice, shipping, stock, isNew } = product;
   const [imgError, setImgError] = useState(false);
+  const [added, setAdded] = useState(false);
   const src = imgError || !image ? FALLBACK_IMG : image;
   const { isInWishlist, toggleWishlist } = useWishlist();
+  const { addItem } = useCart();
   const isFav = isInWishlist(product.id);
+
+  const handleAddToCart = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (addItem) {
+      addItem(product, 1);
+      setAdded(true);
+      setTimeout(() => setAdded(false), 1500);
+    }
+  };
 
   return (
     <Link
       to={`/product/${product.id}`}
-      className="group relative flex w-full shrink-0 flex-col rounded-lg p-3 sm:p-4 snap-start w-40 sm:w-56 transition hover:shadow-md"
+      className="group relative flex shrink-0 flex-col justify-between rounded-xl bg-white border border-stone-200/80 p-3 sm:p-4 snap-start w-44 sm:w-56 transition hover:shadow-md hover:border-green-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
     >
-      <div className="relative mb-3 aspect-square w-full overflow-hidden rounded-md bg-neutral-100">
-        <img
-          src={src}
-          alt={title}
-          loading="lazy"
-          onError={() => setImgError(true)}
-          className="h-full w-full object-cover transition group-hover:scale-105"
-        />
-        {badge && (
-          <div className="absolute left-2 top-2">
-            <Badge tone={isNew ? "dark" : "green"}>{badge}</Badge>
+      <div>
+        <div className="relative mb-3 aspect-square w-full overflow-hidden rounded-lg bg-neutral-100">
+          <img
+            src={src}
+            alt={title}
+            loading="lazy"
+            onError={() => setImgError(true)}
+            className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+          />
+          {badge && (
+            <div className="absolute left-2 top-2 z-10">
+              <Badge tone={isNew ? "dark" : "green"}>{badge}</Badge>
+            </div>
+          )}
+          <div className="absolute right-2 top-2 z-10 flex flex-col gap-1.5">
+            <button
+              type="button"
+              aria-label={isFav ? `Remove ${title} from wishlist` : `Add ${title} to wishlist`}
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                toggleWishlist(product);
+              }}
+              className={`grid size-7 sm:size-8 place-items-center rounded-full bg-white/95 shadow-xs transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 ${
+                isFav ? "text-red-500" : "text-neutral-400 hover:text-red-500"
+              }`}
+            >
+              <Heart size={14} className={isFav ? "fill-red-500 text-red-500" : ""} />
+            </button>
+            <button
+              type="button"
+              aria-label={`Add ${title} to cart`}
+              onClick={handleAddToCart}
+              className={`grid size-7 sm:size-8 place-items-center rounded-full shadow-xs transition hover:scale-110 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500 ${
+                added ? "bg-green-600 text-white" : "bg-white/95 text-neutral-600 hover:bg-green-600 hover:text-white"
+              }`}
+            >
+              <ShoppingCart size={13} />
+            </button>
           </div>
-        )}
-        <button
-          type="button"
-          aria-label="Add to wishlist"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            toggleWishlist(product);
-          }}
-          className={`absolute right-2 top-2 z-10 grid size-7 sm:size-8 place-items-center rounded-full bg-white/90 shadow-sm transition hover:scale-110 ${
-            isFav ? "text-red-500" : "text-neutral-400 hover:text-red-500"
-          }`}
-        >
-          <Heart size={14} className={isFav ? "fill-red-500 text-red-500" : ""} />
-        </button>
+        </div>
+
+        {rating != null && <StarRating count={rating} reviews={reviews} />}
+
+        <h3 className="mt-2 line-clamp-2 min-h-[2.5rem] text-xs sm:text-sm font-bold text-black group-hover:text-green-600 transition">
+          {title}
+        </h3>
       </div>
 
-      {rating != null && <StarRating count={rating} reviews={reviews} />}
+      <div>
+        <div className="mt-1 flex items-baseline gap-2">
+          <span className={`text-base sm:text-lg font-semibold ${oldPrice ? "text-red-600" : "text-black"}`}>
+            {price}
+          </span>
+          {oldPrice && (
+            <span className="text-xs sm:text-sm font-semibold text-stone-500 line-through">{oldPrice}</span>
+          )}
+        </div>
 
-      <h3 className="mt-2 line-clamp-2 min-h-[2.5rem] text-xs sm:text-sm font-bold text-black">
-        {title}
-      </h3>
-
-      <div className="mt-1 flex items-baseline gap-2">
-        <span className={`text-base sm:text-lg font-semibold ${oldPrice ? "text-red-600" : "text-black"}`}>
-          {price}
-        </span>
-        {oldPrice && (
-          <span className="text-xs sm:text-sm font-semibold text-stone-500 line-through">{oldPrice}</span>
-        )}
-      </div>
-
-      <div className="mt-2 flex flex-wrap items-center gap-1 sm:gap-2 text-[9px] sm:text-[10px] font-medium uppercase">
-        {shipping && (
-          <span className="rounded bg-green-600/5 px-2 py-1 text-green-600">{shipping}</span>
-        )}
-        {stock === "in" && <span className="text-black">● In stock</span>}
-        {stock === "out" && <span className="text-black">● Out of stock</span>}
-        {stock === "contact" && <span className="text-black">● Contact</span>}
+        <div className="mt-2 flex flex-wrap items-center gap-1 sm:gap-2 text-[9px] sm:text-[10px] font-medium uppercase">
+          {shipping && (
+            <span className="rounded bg-green-600/5 px-2 py-1 text-green-600">{shipping}</span>
+          )}
+          {stock === "in" && <span className="text-black">● In stock</span>}
+          {stock === "out" && <span className="text-black">● Out of stock</span>}
+          {stock === "contact" && <span className="text-black">● Contact</span>}
+        </div>
       </div>
     </Link>
   );
@@ -184,11 +212,11 @@ function ProductRail({ title, tabs, products, viewAllHref = "/cellphones" }) {
 
   const scroll = (dir) => {
     const el = document.getElementById(scrollerId);
-    if (el) el.scrollBy({ left: dir * 260, behavior: "smooth" });
+    if (el) el.scrollBy({ left: dir * 280, behavior: "smooth" });
   };
 
   return (
-    <section className="rounded-xl bg-white p-3 sm:p-6">
+    <section className="rounded-xl bg-white p-3 sm:p-6 shadow-xs border border-neutral-100">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <div className="flex flex-wrap items-center gap-3 sm:gap-6">
           {title && <h2 className="text-base sm:text-lg font-bold uppercase">{title}</h2>}
@@ -196,8 +224,8 @@ function ProductRail({ title, tabs, products, viewAllHref = "/cellphones" }) {
             <button
               key={tab}
               onClick={() => setActive(tab)}
-              className={`text-sm sm:text-lg uppercase whitespace-nowrap ${
-                active === tab ? "font-bold text-black" : "font-normal text-stone-500"
+              className={`text-sm sm:text-lg uppercase whitespace-nowrap transition ${
+                active === tab ? "font-bold text-black" : "font-normal text-stone-500 hover:text-black"
               }`}
             >
               {tab}
@@ -207,19 +235,23 @@ function ProductRail({ title, tabs, products, viewAllHref = "/cellphones" }) {
         <div className="flex items-center gap-2">
           <Link
             to={viewAllHref}
-            className="text-[10px] sm:text-xs uppercase text-stone-500 hover:text-green-600"
+            className="text-[10px] sm:text-xs uppercase text-stone-500 hover:text-green-600 font-medium"
           >
             View All
           </Link>
           <button
+            type="button"
+            aria-label="Scroll left"
             onClick={() => scroll(-1)}
-            className="grid size-7 sm:size-8 place-items-center rounded-md bg-slate-100"
+            className="grid size-7 sm:size-8 place-items-center rounded-md bg-slate-100 hover:bg-slate-200 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
           >
             <ChevronLeft size={13} />
           </button>
           <button
+            type="button"
+            aria-label="Scroll right"
             onClick={() => scroll(1)}
-            className="grid size-7 sm:size-8 place-items-center rounded-md bg-slate-100"
+            className="grid size-7 sm:size-8 place-items-center rounded-md bg-slate-100 hover:bg-slate-200 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
           >
             <ChevronRight size={13} />
           </button>
@@ -233,7 +265,7 @@ function ProductRail({ title, tabs, products, viewAllHref = "/cellphones" }) {
       ) : (
         <div
           id={scrollerId}
-          className="flex snap-x gap-2 overflow-x-auto scroll-smooth pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+          className="flex snap-x snap-mandatory gap-2 sm:gap-3 overflow-x-auto scroll-smooth pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overscroll-x-contain touch-pan-x"
         >
           {displayProducts.map((p) => (
             <ProductCard key={p.id} product={p} />
@@ -1307,34 +1339,79 @@ function MemberBanner() {
 ========================================================= */
 
 function BrandNewForYou({ products = [] }) {
-  const items = products.slice(0, 4);
+  const newItems = products.filter((p) => p.is_new || p.isNew);
+  const items = newItems.length > 0 ? newItems : products.slice(0, 8);
   if (items.length === 0) return null;
 
+  const scrollBrandNew = (dir) => {
+    const el = document.getElementById("scroller-brand-new");
+    if (el) el.scrollBy({ left: dir * 280, behavior: "smooth" });
+  };
+
   return (
-    <section className="rounded-xl bg-white p-3 sm:p-6">
+    <section className="rounded-xl bg-white p-3 sm:p-6 shadow-xs border border-neutral-100">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base sm:text-lg font-bold uppercase">Brand new for you</h2>
-        <div className="flex items-center gap-1 rounded-full bg-slate-200 px-2 py-1">
-          <ChevronLeft size={10} />
-          <ChevronRight size={10} />
+        <div className="flex items-center gap-2">
+          <Link
+            to="/cellphones?sub=new"
+            className="text-[10px] sm:text-xs uppercase text-stone-500 hover:text-green-600 font-medium"
+          >
+            View All
+          </Link>
+          <button
+            type="button"
+            aria-label="Scroll brand new products left"
+            onClick={() => scrollBrandNew(-1)}
+            className="grid size-7 sm:size-8 place-items-center rounded-md bg-slate-100 hover:bg-slate-200 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+          >
+            <ChevronLeft size={13} />
+          </button>
+          <button
+            type="button"
+            aria-label="Scroll brand new products right"
+            onClick={() => scrollBrandNew(1)}
+            className="grid size-7 sm:size-8 place-items-center rounded-md bg-slate-100 hover:bg-slate-200 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+          >
+            <ChevronRight size={13} />
+          </button>
         </div>
       </div>
-      <div className="grid grid-cols-2 gap-3 sm:gap-6 lg:grid-cols-4">
+      <div
+        id="scroller-brand-new"
+        className="flex snap-x snap-mandatory gap-3 sm:gap-4 overflow-x-auto scroll-smooth pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overscroll-x-contain touch-pan-x"
+      >
         {items.map((it) => (
-          <Link to={`/product/${it.id}`} key={it.id} className="block hover:opacity-90">
-            <img
-              src={it.image || FALLBACK_IMG}
-              alt={it.title}
-              className="mb-2 sm:mb-3 h-40 sm:h-[250px] w-full rounded-xl object-cover"
-              onError={(e) => { e.target.src = FALLBACK_IMG; }}
-            />
-            <h3 className="text-xs sm:text-base font-bold line-clamp-2">{it.title}</h3>
-            <p className="mt-1 text-[10px] sm:text-xs text-stone-500 line-clamp-2">
-              {it.description || `Starting from ${it.price}`}
-            </p>
-            <span className="mt-2 sm:mt-3 inline-block rounded-lg border border-green-600 px-2.5 sm:px-4 py-1.5 sm:py-2 text-[10px] sm:text-xs font-medium uppercase text-green-600">
-              Shop Now
-            </span>
+          <Link
+            to={`/product/${it.id}`}
+            key={it.id}
+            className="group flex flex-col justify-between w-[72vw] max-w-[260px] xs:w-60 sm:w-64 lg:w-[calc(25%-12px)] shrink-0 snap-start rounded-xl border border-stone-200/80 p-3 sm:p-4 transition hover:border-green-600 hover:shadow-md bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+          >
+            <div>
+              <div className="relative mb-2 sm:mb-3 aspect-square w-full overflow-hidden rounded-lg bg-neutral-100">
+                <img
+                  src={it.image || FALLBACK_IMG}
+                  alt={it.title}
+                  loading="lazy"
+                  className="h-full w-full object-cover transition duration-300 group-hover:scale-105"
+                  onError={(e) => { e.target.src = FALLBACK_IMG; }}
+                />
+              </div>
+              <h3 className="text-xs sm:text-base font-bold line-clamp-2 text-black group-hover:text-green-600 transition">
+                {it.title}
+              </h3>
+              <p className="mt-1 text-[10px] sm:text-xs text-stone-500 line-clamp-2">
+                {it.description || `Starting from ${it.price}`}
+              </p>
+            </div>
+            <div className="mt-3 flex items-center justify-between gap-2 border-t border-neutral-100 pt-2.5">
+              <span className="text-xs sm:text-sm font-semibold text-black">
+                {it.price}
+              </span>
+              <span className="inline-block rounded-lg border border-green-600 px-2.5 sm:px-3.5 py-1 sm:py-1.5 text-[10px] sm:text-xs font-medium uppercase text-green-600 group-hover:bg-green-600 group-hover:text-white transition">
+                Shop Now
+              </span>
+            </div>
           </Link>
         ))}
       </div>
@@ -1356,29 +1433,52 @@ function TopCellphonesSection({ products = [], viewAllHref = "/cellphones" }) {
     { name: "Accessories", items: 0, icon: Headphones, isImg: false },
   ];
 
+  const scrollCellphones = (dir) => {
+    const el = document.getElementById("cellphones-product-rail");
+    if (el) el.scrollBy({ left: dir * 280, behavior: "smooth" });
+  };
+
   return (
-    <section className="rounded-xl bg-white p-3 sm:p-6">
+    <section className="rounded-xl bg-white p-3 sm:p-6 shadow-xs border border-neutral-100">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base sm:text-lg font-bold uppercase">Top cellphones &amp; tablets</h2>
-        <Link to={viewAllHref} className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600">
-          View All <ChevronRight size={12} />
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link to={viewAllHref} className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600 font-medium">
+            View All <ChevronRight size={12} />
+          </Link>
+          <button
+            type="button"
+            aria-label="Scroll cellphones left"
+            onClick={() => scrollCellphones(-1)}
+            className="grid size-7 sm:size-8 place-items-center rounded-md bg-slate-100 hover:bg-slate-200 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+          >
+            <ChevronLeft size={13} />
+          </button>
+          <button
+            type="button"
+            aria-label="Scroll cellphones right"
+            onClick={() => scrollCellphones(1)}
+            className="grid size-7 sm:size-8 place-items-center rounded-md bg-slate-100 hover:bg-slate-200 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+          >
+            <ChevronRight size={13} />
+          </button>
+        </div>
       </div>
 
       <div className="mb-4 sm:mb-6 grid grid-cols-1 gap-4 sm:gap-6 border-b border-neutral-400/25 pb-4 sm:pb-6 lg:grid-cols-[605px_1fr]">
         {products.length > 0 ? (
-          <Link to={`/product/${products[0].id}`} className="relative block overflow-hidden rounded-xl">
+          <Link to={`/product/${products[0].id}`} className="relative block overflow-hidden rounded-xl group">
             <img
               src={products[0].image || FALLBACK_IMG}
               alt={products[0].title}
-              className="h-48 sm:h-56 w-full object-cover"
+              className="h-48 sm:h-56 w-full object-cover transition duration-300 group-hover:scale-102"
               onError={(e) => { e.target.src = FALLBACK_IMG; }}
             />
             <div className="absolute inset-0 flex flex-col justify-center gap-2 sm:gap-3 bg-black/40 p-4 sm:p-6">
               <h3 className="max-w-[90%] text-xl sm:text-2xl font-medium uppercase leading-tight text-white line-clamp-2">
                 {products[0].title}
               </h3>
-              <span className="w-fit rounded-lg bg-neutral-800 px-4 sm:px-5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium uppercase text-white">
+              <span className="w-fit rounded-lg bg-neutral-800 px-4 sm:px-5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium uppercase text-white transition group-hover:bg-green-600">
                 Shop Now
               </span>
             </div>
@@ -1417,7 +1517,10 @@ function TopCellphonesSection({ products = [], viewAllHref = "/cellphones" }) {
       </div>
 
       {products.length > 0 ? (
-        <div className="flex snap-x gap-2 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div
+          id="cellphones-product-rail"
+          className="flex snap-x snap-mandatory gap-2 sm:gap-3 overflow-x-auto scroll-smooth pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overscroll-x-contain touch-pan-x"
+        >
           {products.slice(0, 8).map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
@@ -1443,29 +1546,52 @@ function LaptopsSection({ products = [], viewAllHref = "/laptops" }) {
     { name: "Others", items: products.length, icon: Laptop, isImg: false },
   ];
 
+  const scrollLaptops = (dir) => {
+    const el = document.getElementById("laptops-product-rail");
+    if (el) el.scrollBy({ left: dir * 280, behavior: "smooth" });
+  };
+
   return (
-    <section className="rounded-xl bg-white p-3 sm:p-6">
+    <section className="rounded-xl bg-white p-3 sm:p-6 shadow-xs border border-neutral-100">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base sm:text-lg font-bold uppercase">Best Laptops &amp; Computers</h2>
-        <Link to={viewAllHref} className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600">
-          View All <ChevronRight size={12} />
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link to={viewAllHref} className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600 font-medium">
+            View All <ChevronRight size={12} />
+          </Link>
+          <button
+            type="button"
+            aria-label="Scroll laptops left"
+            onClick={() => scrollLaptops(-1)}
+            className="grid size-7 sm:size-8 place-items-center rounded-md bg-slate-100 hover:bg-slate-200 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+          >
+            <ChevronLeft size={13} />
+          </button>
+          <button
+            type="button"
+            aria-label="Scroll laptops right"
+            onClick={() => scrollLaptops(1)}
+            className="grid size-7 sm:size-8 place-items-center rounded-md bg-slate-100 hover:bg-slate-200 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+          >
+            <ChevronRight size={13} />
+          </button>
+        </div>
       </div>
 
       <div className="mb-4 sm:mb-6 grid grid-cols-1 gap-4 sm:gap-6 border-b border-neutral-400/25 pb-4 sm:pb-6 lg:grid-cols-[605px_1fr]">
         {products.length > 0 ? (
-          <Link to={`/product/${products[0].id}`} className="relative block overflow-hidden rounded-xl">
+          <Link to={`/product/${products[0].id}`} className="relative block overflow-hidden rounded-xl group">
             <img
               src={products[0].image || FALLBACK_IMG}
               alt={products[0].title}
-              className="h-48 sm:h-56 w-full object-cover"
+              className="h-48 sm:h-56 w-full object-cover transition duration-300 group-hover:scale-102"
               onError={(e) => { e.target.src = FALLBACK_IMG; }}
             />
             <div className="absolute inset-0 flex flex-col justify-center gap-2 sm:gap-3 bg-black/40 p-4 sm:p-6">
               <h3 className="max-w-[90%] text-xl sm:text-2xl font-medium uppercase leading-tight text-white line-clamp-2">
                 {products[0].title}
               </h3>
-              <span className="w-fit rounded-lg bg-green-600 px-4 sm:px-5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium uppercase text-white">
+              <span className="w-fit rounded-lg bg-green-600 px-4 sm:px-5 py-1.5 sm:py-2 text-[11px] sm:text-xs font-medium uppercase text-white transition group-hover:bg-green-500">
                 Explore
               </span>
             </div>
@@ -1504,7 +1630,10 @@ function LaptopsSection({ products = [], viewAllHref = "/laptops" }) {
       </div>
 
       {products.length > 0 ? (
-        <div className="flex snap-x gap-2 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div
+          id="laptops-product-rail"
+          className="flex snap-x snap-mandatory gap-2 sm:gap-3 overflow-x-auto scroll-smooth pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overscroll-x-contain touch-pan-x"
+        >
           {products.slice(0, 8).map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
@@ -1519,6 +1648,25 @@ function LaptopsSection({ products = [], viewAllHref = "/laptops" }) {
 /* =========================================================
    Smart Category Section
 ========================================================= */
+
+const CATEGORY_DEFAULT_IMAGES = {
+  Speaker: "https://images.unsplash.com/photo-1545454675-3531b543be5d?w=400&q=80",
+  Camera: "https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&q=80",
+  Earbuds: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400&q=80",
+  Microphone: "https://images.unsplash.com/photo-1590602847861-f357a9332bbc?w=400&q=80",
+  ASUS: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&q=80",
+  Gaming: "https://images.unsplash.com/photo-1587202372775-e229f172b9d7?w=400&q=80",
+  Printer: "https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=400&q=80",
+  Network: "https://images.unsplash.com/photo-1544197150-b99a580bb7a8?w=400&q=80",
+  Security: "https://images.unsplash.com/photo-1557597774-9d273605dfa9?w=400&q=80",
+  Projector: "https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?w=400&q=80",
+};
+
+const SECTION_BANNERS = {
+  "Audios & Cameras": "https://images.unsplash.com/photo-1508700115892-45ecd05ae2ad?w=600&q=80",
+  "Gaming": "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=600&q=80",
+  "Office Equipments": "https://images.unsplash.com/photo-1497366216548-37526070297c?w=600&q=80",
+};
 
 function SmartCategorySection({ title, keywords, products = [] }) {
   const matchedProducts = products.filter((p) => {
@@ -1539,64 +1687,87 @@ function SmartCategorySection({ title, keywords, products = [] }) {
     .slice(0, 4)
     .map((name) => {
       const items = groupedByTitle[name];
+      const fallbackForName = CATEGORY_DEFAULT_IMAGES[name] || CATEGORY_DEFAULT_IMAGES[name.toUpperCase()] || FALLBACK_IMG;
       return {
         name: name,
         items: items.length,
-        image: items[0]?.image || FALLBACK_IMG,
+        image: items[0]?.image || fallbackForName,
       };
     });
 
   if (categories.length === 0) {
-    categories = keywords.slice(0, 4).map((kw) => ({
-      name: kw.charAt(0).toUpperCase() + kw.slice(1),
-      items: 0,
-      image: FALLBACK_IMG,
-    }));
+    categories = keywords.slice(0, 4).map((kw) => {
+      const name = kw.charAt(0).toUpperCase() + kw.slice(1);
+      return {
+        name: name,
+        items: 0,
+        image: CATEGORY_DEFAULT_IMAGES[name] || FALLBACK_IMG,
+      };
+    });
   }
 
-  const bannerImage = matchedProducts[0]?.image || FALLBACK_IMG;
+  const bannerImage = SECTION_BANNERS[title] || matchedProducts[0]?.image || FALLBACK_IMG;
   const isLaptopSection = keywords.some((k) => /laptop|pc|gaming|office|computer/i.test(k));
   const categoryHref = isLaptopSection ? "/laptops" : "/cellphones";
 
   return (
-    <section className="rounded-xl bg-white p-3 sm:p-6">
-      <div className="mb-3 sm:mb-4 flex items-center justify-between">
-        <h2 className="text-sm sm:text-lg font-bold uppercase line-clamp-1">{title}</h2>
-        <Link to={categoryHref} className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600 whitespace-nowrap">
-          View All <ChevronRight size={12} />
+    <section className="rounded-xl bg-white p-3 sm:p-6 shadow-xs border border-neutral-100 flex flex-col justify-between">
+      <div>
+        <div className="mb-3 sm:mb-4 flex items-center justify-between">
+          <h2 className="text-sm sm:text-lg font-bold uppercase line-clamp-1">{title}</h2>
+          <Link to={categoryHref} className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600 whitespace-nowrap font-medium">
+            View All <ChevronRight size={12} />
+          </Link>
+        </div>
+
+        <Link to={categoryHref} className="mb-3 sm:mb-6 block overflow-hidden rounded-xl group">
+          <img
+            src={bannerImage}
+            alt={title}
+            className="h-32 sm:h-48 w-full object-cover transition duration-300 group-hover:scale-102"
+            onError={(e) => { e.target.src = SECTION_BANNERS[title] || FALLBACK_IMG; }}
+          />
         </Link>
       </div>
 
-      <Link to={categoryHref} className="mb-3 sm:mb-6 block overflow-hidden rounded-xl">
-        <img
-          src={bannerImage}
-          alt={title}
-          className="h-32 sm:h-48 w-full object-cover"
-          onError={(e) => { e.target.src = FALLBACK_IMG; }}
-        />
-      </Link>
-
-      <div className="grid grid-cols-2 gap-3 sm:gap-6 border-t border-neutral-400/30 pt-3 sm:pt-6">
-        {categories.map((c) => (
-          <Link
-            key={c.name}
-            to={`${categoryHref}?search=${encodeURIComponent(c.name)}`}
-            className="flex flex-col items-center gap-1.5 sm:gap-2 text-center transition hover:opacity-80"
-          >
-            <div className="size-14 sm:size-20 lg:size-28 overflow-hidden rounded-full bg-neutral-100">
-              <img
-                src={c.image}
-                alt={c.name}
-                className="h-full w-full object-cover"
-                onError={(e) => { e.target.src = FALLBACK_IMG; }}
-              />
-            </div>
-            <div>
-              <p className="text-xs sm:text-sm font-bold capitalize line-clamp-1">{c.name}</p>
-              <p className="text-[10px] sm:text-xs text-stone-500">{c.items} Items</p>
-            </div>
-          </Link>
-        ))}
+      <div className={`grid ${categories.length === 1 ? "grid-cols-1 place-items-center py-2" : "grid-cols-2"} gap-3 sm:gap-6 border-t border-neutral-200/60 pt-3 sm:pt-6`}>
+        {categories.map((c) => {
+          const isAsus = c.name.toLowerCase() === "asus";
+          const resolvedImg = isAsus ? (CATEGORY_DEFAULT_IMAGES.ASUS || c.image) : (c.image || CATEGORY_DEFAULT_IMAGES[c.name] || FALLBACK_IMG);
+          return (
+            <Link
+              key={c.name}
+              to={`${categoryHref}?search=${encodeURIComponent(c.name)}`}
+              className="group flex flex-col items-center gap-1.5 sm:gap-2 text-center transition hover:opacity-90 max-w-[140px]"
+            >
+              <div className="relative size-16 sm:size-20 lg:size-24 overflow-hidden rounded-full bg-neutral-100 ring-2 ring-neutral-200/70 shadow-sm transition group-hover:ring-green-500 group-hover:scale-105">
+                <img
+                  src={resolvedImg}
+                  alt={c.name}
+                  className="h-full w-full object-cover"
+                  onError={(e) => { e.target.src = CATEGORY_DEFAULT_IMAGES[c.name] || FALLBACK_IMG; }}
+                />
+                {isAsus && (
+                  <div className="absolute inset-x-0 bottom-0 flex items-center justify-center bg-black/65 py-0.5">
+                    <img
+                      src="/brands/asus.svg"
+                      alt="ASUS brand"
+                      className="h-2 sm:h-2.5 w-auto object-contain brightness-0 invert"
+                    />
+                  </div>
+                )}
+              </div>
+              <div className="w-full">
+                <p className="text-xs sm:text-sm font-bold capitalize line-clamp-1 text-neutral-900 group-hover:text-green-600 transition">
+                  {c.name}
+                </p>
+                <p className="text-[10px] sm:text-xs text-stone-500">
+                  {c.items} {c.items === 1 ? "Item" : "Items"}
+                </p>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </section>
   );
@@ -1656,33 +1827,58 @@ function TwoBanners() {
 ========================================================= */
 
 function RecentlyViewed({ products = [] }) {
+  const scrollRecent = (dir) => {
+    const el = document.getElementById("recently-viewed-scroller");
+    if (el) el.scrollBy({ left: dir * 280, behavior: "smooth" });
+  };
+
   return (
-    <section className="rounded-xl bg-white p-3 sm:p-6">
+    <section className="rounded-xl bg-white p-3 sm:p-6 shadow-xs border border-neutral-100">
       <div className="mb-4 flex items-center justify-between">
         <h2 className="text-base sm:text-lg font-bold uppercase">Your recently viewed</h2>
-        <Link to="/cellphones" className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600">
-          View All <ChevronRight size={12} />
-        </Link>
+        <div className="flex items-center gap-2">
+          <Link to="/cellphones" className="flex items-center gap-1 text-xs text-stone-500 hover:text-green-600 font-medium">
+            View All <ChevronRight size={12} />
+          </Link>
+          <button
+            type="button"
+            aria-label="Scroll recently viewed left"
+            onClick={() => scrollRecent(-1)}
+            className="grid size-7 sm:size-8 place-items-center rounded-md bg-slate-100 hover:bg-slate-200 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+          >
+            <ChevronLeft size={13} />
+          </button>
+          <button
+            type="button"
+            aria-label="Scroll recently viewed right"
+            onClick={() => scrollRecent(1)}
+            className="grid size-7 sm:size-8 place-items-center rounded-md bg-slate-100 hover:bg-slate-200 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
+          >
+            <ChevronRight size={13} />
+          </button>
+        </div>
       </div>
 
       {products.length === 0 ? (
         <p className="py-8 text-center text-sm text-stone-500">No recently viewed products.</p>
       ) : (
-        /* ✅ Horizontal scroll — single line */
-        <div className="flex snap-x gap-3 overflow-x-auto pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div
+          id="recently-viewed-scroller"
+          className="flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth pb-2 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden overscroll-x-contain touch-pan-x"
+        >
           {products.map((p) => (
             <Link
               key={p.id}
               to={`/product/${p.id}`}
-              className="flex w-64 sm:w-72 shrink-0 snap-start gap-2 sm:gap-3 rounded-lg border border-stone-200 p-2 transition hover:border-green-600 hover:bg-neutral-50"
+              className="flex w-[72vw] max-w-[280px] xs:w-64 sm:w-72 shrink-0 snap-start gap-2 sm:gap-3 rounded-xl border border-stone-200/80 p-2 sm:p-2.5 transition hover:border-green-600 hover:bg-neutral-50 bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-500"
             >
-              <div className="relative size-20 sm:size-24 shrink-0 overflow-hidden rounded bg-neutral-100">
+              <div className="relative size-20 sm:size-24 shrink-0 overflow-hidden rounded-lg bg-neutral-100">
                 <img
                   src={p.image || FALLBACK_IMG}
                   alt={p.title}
                   loading="lazy"
                   onError={(e) => { e.target.src = FALLBACK_IMG; }}
-                  className="h-full w-full object-cover"
+                  className="h-full w-full object-cover transition duration-300 hover:scale-105"
                 />
                 {p.badge && (
                   <span className="absolute left-1 top-1">
@@ -1690,11 +1886,13 @@ function RecentlyViewed({ products = [] }) {
                   </span>
                 )}
               </div>
-              <div className="min-w-0 flex-1">
-                {p.rating != null && <StarRating count={p.rating} reviews={p.reviews} />}
-                <p className="mt-1 line-clamp-2 text-[10px] sm:text-xs font-bold">
-                  {p.title}
-                </p>
+              <div className="min-w-0 flex-1 flex flex-col justify-between py-0.5">
+                <div>
+                  {p.rating != null && <StarRating count={p.rating} reviews={p.reviews} />}
+                  <p className="mt-1 line-clamp-2 text-[10px] sm:text-xs font-bold text-black hover:text-green-600 transition">
+                    {p.title}
+                  </p>
+                </div>
                 <div className="mt-1 flex items-baseline gap-1 sm:gap-2">
                   <span className={`text-xs sm:text-base font-bold ${p.oldPrice ? "text-red-600" : "text-black"}`}>
                     {p.price}
@@ -1950,7 +2148,7 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-200">
+    <div className="min-h-screen bg-gray-200 overflow-x-hidden">
       <div className="mx-auto flex max-w-7xl flex-col gap-3 sm:gap-4 px-2 sm:px-4 lg:px-6 py-3 sm:py-4">
         <Header />
         <PromoBar />
